@@ -30,8 +30,7 @@ def draw_field(filename,fieldname):
 	grid = sr.Get_field_variable(filename,'Grid_mid');
 	extent = grid.extents
 	a1 = sr.Get_field_variable(filename,fieldname);
-	print(dir(a1))
-	df.draw_field_single_picture(a1.data,extent=extent,plain='xy',index=96,dataname=fieldname,figname='Ex06',Display=0)
+	df.draw_field_snapshot(a1.data,dims =3,extent=extent,plain='xy',index=96,label=('x','y','z','Ex06'),figname='Ex06',Display=0)
 
 def cal_circular_frequency(filename):
 	[dpy,dpz,dgam,dgrid] = sr.Get_particle_variable(filename,['Py','Pz','Gamma','Grid'],'electron');
