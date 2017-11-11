@@ -91,18 +91,25 @@ def draw_field_single_picture(data,extent,plain,index,dataname,Display=0,figname
 	import matplotlib.pyplot as plt
 	from mpl_toolkits.mplot3d import Axes3D
 	import numpy as np 
-	if (fig == 'fig'):
-		ffigname = dataname[3];
-	else:
-		ffigname = fig;
 
 	fig = plt.figure(figsize = (6,6));
 	ax = fig.add_subplot(111)
-	ax.imshow(data,extent=extent,origin='lower',cmap='jet',\
+	nx,ny,nz = data.shape;
+	if (plain == 'xy'): 
+		ddata = data[:,:,index].reshape(nx,ny);
+		new_extent = extent[0:4];
+	if (plain == 'yz'):
+		ddata = data[index,:,:].reshape(ny,nz);
+		new_extent = extent[2:6];
+	if (plain == 'xz'):
+		ddata = data[:,index,:].reshape(nx,nz);
+		new_extent = (extent[0],extent[1],extent[4],extent[5]);
+	
+	ax.imshow(ddata,extent=new_extent,origin='lower',cmap='jet',\
 			 vmax=data.max(),vmin=data.min(),interpolation='spline36')
 	if (Display):
 		plt.show();
 	else:
-		fig.savefig(ffigname,dpi=300,facecolor='w',edgecolor='b');	
+		fig.savefig(figname,dpi=300,facecolor='w',edgecolor='b');	
 		
 

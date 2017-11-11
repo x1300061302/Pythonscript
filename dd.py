@@ -1,9 +1,10 @@
 #! /usr/bin/python
 import sdfread as sr
+import drawfig as df
 import numpy as np
 from const import*
 
-def dd_specturm(allfilename): 
+def draw_specturm(allfilename): 
 	for filename in allfilename:
 		dgam = sr.Get_particle_variable(filename,('Gamma'),'electron');
 		gam = dgam.data;
@@ -16,6 +17,7 @@ def dd_specturm(allfilename):
 	print('ok')
 	
 def angle_distribution(filename):
+	"""draw angle distribution of filename"""
 	dpy,dpz,dgam = sr.Get_particle_variable(filename,['Py','Pz','Gamma'],'electron');
 	py = dpy.data/me/c;
 	pz = dpz.data/me/c;
@@ -24,11 +26,12 @@ def angle_distribution(filename):
 	import drawfig as df
 	df.draw_angle_distribution3d(theta,gamma);
 
-def dd_drawfv(filename):
+def draw_field(filename,fieldname):
 	grid = sr.Get_field_variable(filename,'Grid_mid');
 	extent = grid.extents
-	a1 = sr.Get_field_variable(filename,'Ex');
-	draw_field_single_picture(a1.data[:,:,:],)
+	a1 = sr.Get_field_variable(filename,fieldname);
+	print(dir(a1))
+	df.draw_field_single_picture(a1.data,extent=extent,plain='xy',index=96,dataname=fieldname,figname='Ex06',Display=0)
 
 def cal_circular_frequency(filename):
 	[dpy,dpz,dgam,dgrid] = sr.Get_particle_variable(filename,['Py','Pz','Gamma','Grid'],'electron');
@@ -40,6 +43,7 @@ def cal_circular_frequency(filename):
 	r = y**2+z**2
 	omega = (py*z + pz*y)/r**2/gam/me
 	return omega 
+
 def cal_laser_frequency(filename):
 	'''laser info lambda = 1um omega = 2*np.pi/T0,vph=c'''
 	[dpx,dgam]= sr.Get_particle_variable(filename,['Px','Gamma'],'electron');
