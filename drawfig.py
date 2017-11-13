@@ -74,13 +74,10 @@ def draw_spectrum(data,dataname,weight=0,figname='fig',numl=1,logx=0,display=0):
 		plt.show()
 	return fig,line 
 
-def draw_field_snapshot(data,dims,extent,label,plain='xy',index=0,Display=0,figname='fig'):
-	'''data should be 3-D array shape = (nx,ny,nz) or 2-D array (nx,ny) 
-	extent should be [[x_min,x_max],[y_min,y_max],[z_min,z_max]]
-	label = ['xlabel/Unit','ylabel/Unit','zlabel/Unit','title'] 
-	plain = 'xy','yz','xz' for dims = 3
-	index is the z index,x index ,y index for responding plain 
-	label = ['xlabel/Unit','ylabel/Unit','zlabel/Unit','title'] 
+def draw_field_snapshot(data,extent,label,Display=0,figname='fig'):
+	'''data should be 2-D array (nx,ny) 
+	extent should be ([x_min,x_max],[y_min,y_max])
+	label = ['xlabel/Unit','ylabel/Unit','title'] 
 	Display dicide whether to show
 	figname default = title'''
 	if (Display==0):
@@ -96,36 +93,7 @@ def draw_field_snapshot(data,dims,extent,label,plain='xy',index=0,Display=0,fign
 
 	fig = plt.figure(figsize = (6,6));
 	ax = fig.add_subplot(111)
-	if (dims == 3):
-		nx,ny,nz = data.shape;
-		if (plain == 'xy'): 
-			ddata = data[:,:,index];
-			ddata = ddata.T;
-			new_extent = extent[0:4];
-			xlabel = label[0];
-			ylabel = label[1];
-			myaspect = nx/ny;
-		if (plain == 'yz'):
-			ddata = data[index,:,:].reshape(ny,nz);
-			new_extent = extent[2:6];
-			xlabel = label[1];
-			ylabel = label[2];
-		if (plain == 'xz'):
-			ddata = data[:,index,:].reshape(nx,nz);
-			ddata = ddata.T;
-			new_extent = (extent[0],extent[1],extent[4],extent[5]);
-			aspect = nz/nx;
-			xlabel = label[0];
-			ylabel = label[2];
-	else:
-		nx,ny = data.shape;
-		ddata = ddata.T;
-		new_extent = extent;
-		aspect = nx/ny;
-		xlabel = label[0];
-		ylabel = label[1];
 
-	title = label[3];	
 	ax.imshow(ddata,aspect=myaspect,origin='lower',cmap='jet',\
 			 vmax=data.max(),vmin=data.min(),interpolation='spline36')
 	plt.xlabel(xlabel)
