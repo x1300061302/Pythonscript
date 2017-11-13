@@ -74,7 +74,7 @@ def draw_spectrum(data,dataname,weight=0,figname='fig',numl=1,logx=0,display=0):
 		plt.show()
 	return fig,line 
 
-def draw_field_snapshot(data,extent,label,Display=0,figname='fig'):
+def draw_field_snapshot(data,extent,label,numtick=5,Display=0,figname='fig'):
 	'''data should be 2-D array (nx,ny) 
 	extent should be ([x_min,x_max],[y_min,y_max])
 	label = ['xlabel/Unit','ylabel/Unit','title'] 
@@ -94,19 +94,40 @@ def draw_field_snapshot(data,extent,label,Display=0,figname='fig'):
 	fig = plt.figure(figsize = (6,6));
 	ax = fig.add_subplot(111)
 
-	ax.imshow(ddata,aspect=myaspect,origin='lower',cmap='jet',\
-			 vmax=data.max(),vmin=data.min(),interpolation='spline36')
-	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	axx = ax.xaxis;
-	print(axx.get_ticklocs())
-	print[m.get_text() for m in axx.get_ticklabels()]
+	nx,ny = data.shape
+	aspect = ny/nx*0.8
 
-	plt.title(title)
+	gci = ax.imshow(data,extent = extent,origin='lower',cmap='jet',\
+			 vmax=data.max(),vmin=data.min(),interpolation='spline36')
+
+	#set x_ticklabel 
+	axx = ax.xaxis;
+	xticklocs = np.linspace(0,ny,5)
+	xtick = np.linspace(extent[0],extent[1],numtick)
+	xticks = [str(k) for k in xtick]
+	print(xticks)
+	axx.set_ticks(xticklocs)
+	axx.set_ticklabels(xticks)
+	#set y_ticklabel 
+	ayy = ax.yaxis;
+	yticklocs = np.linspace(0,nx,5)
+	ayy.set_ticks(yticklocs)
+	ytick = np.linspace(extent[2],extent[3],numtick)
+	yticks = [str(k) for k in ytick]
+	ayy.set_ticklabels(yticks)
+	#label 
+	plt.xlabel(label[0])
+	plt.ylabel(label[1])
+	plt.title(label[2])
+	ax.set_ylim([0,5.0])
+	ax.set_xlim([0,5.0])
+	#colorbar
+	plt.colorbar(gci);
 
 	if (Display):
 		plt.show();
 	else:
 		fig.savefig(figname,dpi=300,facecolor='w',edgecolor='b');	
+	
 		
 
