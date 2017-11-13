@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sdf 
 
-def Get_particle_variable(deckname,varcombine,species):
+def Get_particle_variable(sdffile,varcombine,species):
 	'''def Get_particle_variable(deckname,var,species):
 	deckname e.g = 'pxxxx.sdf'
 	var = [Px,Py,Gamma,Grid] etc.
@@ -16,7 +16,6 @@ def Get_particle_variable(deckname,varcombine,species):
 			rege_var = r'^'+var + '_Particles' + '\w*'+species+'$' 
 		else:
 			rege_var = r'^Particles_'+var+'\w*'+species+'$'
-		sdffile = sdf.read(deckname)
 		dic = sdffile.__dict__
 		for key in dic: 
 			if re.match(rege_var,key):
@@ -30,7 +29,7 @@ def Get_particle_variable(deckname,varcombine,species):
 	return data
 
 
-def Get_field_variable(deckname,var):
+def Get_field_variable(sdffile,var):
 	
 	'''def Get_field_variable(deckname,var):
 	var = 1 should be Ex,Ey,Ex_averaged ...
@@ -42,7 +41,6 @@ def Get_field_variable(deckname,var):
 	
 	rege_var = r'^' + '\w*'+var+'$' 
 
-	sdffile = sdf.read(deckname)
 	dic = sdffile.__dict__
 	for key in dic: 
 		if re.match(rege_var,key):
@@ -54,5 +52,10 @@ def Get_field_variable(deckname,var):
 		print(dic.keys())
 		print('******************************************************')
 	return data
-
-'''test'''
+def Get_extent(sdffile):
+	import numpy as np;
+	grid = Get_field_variable(sdffile,'Grid');
+	index = np.array([0,2,1,3]);
+	extent = np.array(grid.extents)
+	myextent = extent[index]
+	return myextent

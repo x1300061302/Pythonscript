@@ -11,7 +11,6 @@ def draw_angle_distribution3d(T,R,rlim = 0,figname='fig',binT=360,binR=1000):
 		print('use matplotlib.use before import plt')        
 	import matplotlib.cm as cm
 	import matplotlib.pyplot as plt
-	from mpl_toolkits.mplot3d import Axes3D
 	import numpy as np 
 	'''histogram'''
 	H,Tedge,Redge = np.histogram2d(T,R,bins=[binT,binR])
@@ -74,9 +73,10 @@ def draw_spectrum(data,dataname,weight=0,figname='fig',numl=1,logx=0,display=0):
 		plt.show()
 	return fig,line 
 
-def draw_field_snapshot(data,extent,label,numtick=5,Display=0,figname='fig'):
+def draw_field_snapshot(data,extent,label,xylim=0,Display=0,figname='fig'):
 	'''data should be 2-D array (nx,ny) 
 	extent should be ([x_min,x_max],[y_min,y_max])
+	xylim = ([xmin,xmax],[ymin,ymax])
 	label = ['xlabel/Unit','ylabel/Unit','title'] 
 	Display dicide whether to show
 	figname default = title'''
@@ -88,41 +88,31 @@ def draw_field_snapshot(data,extent,label,numtick=5,Display=0,figname='fig'):
 			print('use matplotlib.use before import plt')        	
 	import matplotlib.cm as cm
 	import matplotlib.pyplot as plt
+	from mpl_toolkits.axes_grid1 import make_axes_locatable
 	from mpl_toolkits.mplot3d import Axes3D
 	import numpy as np 
 
-	fig = plt.figure(figsize = (6,6));
+	fig = plt.figure(figsize = (10,5));
 	ax = fig.add_subplot(111)
 
 	nx,ny = data.shape
-	aspect = ny/nx*0.8
 
 	gci = ax.imshow(data,extent = extent,origin='lower',cmap='jet',\
 			 vmax=data.max(),vmin=data.min(),interpolation='spline36')
 
-	#set x_ticklabel 
-	axx = ax.xaxis;
-	xticklocs = np.linspace(0,ny,5)
-	xtick = np.linspace(extent[0],extent[1],numtick)
-	xticks = [str(k) for k in xtick]
-	print(xticks)
-	axx.set_ticks(xticklocs)
-	axx.set_ticklabels(xticks)
-	#set y_ticklabel 
-	ayy = ax.yaxis;
-	yticklocs = np.linspace(0,nx,5)
-	ayy.set_ticks(yticklocs)
-	ytick = np.linspace(extent[2],extent[3],numtick)
-	yticks = [str(k) for k in ytick]
-	ayy.set_ticklabels(yticks)
-	#label 
+	#set axis
+	if (xylim == 0):
+		pass
+	else:
+		ax.set_xlim(xylim[0])
+		ax.set_ylim(xylim[1])
 	plt.xlabel(label[0])
 	plt.ylabel(label[1])
 	plt.title(label[2])
-	ax.set_ylim([0,5.0])
-	ax.set_xlim([0,5.0])
 	#colorbar
-	plt.colorbar(gci);
+	divider = make_axes_locatable(ax)
+	cax = divider.append_axes('right',size='3%',pad=0.1)
+	cbar = plt.colorbar(gci,cax);
 
 	if (Display):
 		plt.show();
