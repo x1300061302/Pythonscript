@@ -53,6 +53,8 @@ def Get_field_variable(sdffile,var):
 		print('******************************************************')
 	return data
 def Get_extent(sdffile):
+	'''return grid.extents which is a list of [xmin,ymin,xmax,ymax] for 2D
+	 or xmin,ymin,zmin,xmax,ymax,zmax for 3D but I just write the version for 2D'''
 	import numpy as np;
 	grid = Get_field_variable(sdffile,'Grid');
 	index = np.array([0,2,1,3]);
@@ -60,6 +62,9 @@ def Get_extent(sdffile):
 	myextent = extent[index]
 	return myextent
 def Get_file(prefix,dirc=''):
+	''' prefix = 'p' or 'f' 
+	dirc is the name directory of the sdf file
+	return sdf filename without dirc added'''
 	import os 
 	import re
 	filename = [];

@@ -172,3 +172,33 @@ def draw_field_snapshot(data, extent, label, xylim=0, Display=0, figname='fig'):
         plt.show()
     else:
         fig.savefig(figname, dpi=300, facecolor='w', edgecolor='b')
+
+def plot_line(xx,data,label,figname,savefig = 1):
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+    except:
+        print('use matplotlib.use before import plt')
+
+    import matplotlib.cm as cm
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from mpl_toolkits.mplot3d import Axes3D
+    import numpy as np
+
+    fig = plt.figure(figsize=(10,8))
+    ax = fig.add_subplot(111)
+    ax.plot(xx,data,'r-',label = label[2],linewidth=2.0)
+    ######figure setting
+    plt.xlabel(label[0])
+    plt.ylabel(label[1])
+    plt.title(label[2])
+    
+    plt.legend()
+    fig.savefig(figname,dpi = 300, facecolor = 'w',edgecolor='b')
+
+#**************main test
+import numpy as np
+a = np.linspace(0,1000,1000)
+xx = np.linspace(0,80,1000)
+plot_line(xx,a,('x','y','test'),'test')
