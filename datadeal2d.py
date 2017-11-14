@@ -10,8 +10,7 @@ def print_spectrum(filename,prefix =''):
 	a = sdf.read(filename)
 	dgam = sr.Get_particle_variable(a,'Gamma','electron');
 	gam = dgam.data;
-	print(gam)
-	df.draw_spectrum(gam,label =('x','y','gam'+prefix),figname = 'gam'+prefix,Display = 1)
+	df.draw_spectrum(gam,label =('x','y','gam'+prefix),figname = 'gam'+prefix)
 	print('ok')
 
 def draw_field(filename,varname,prefix=''):
@@ -24,6 +23,19 @@ def draw_field(filename,varname,prefix=''):
 			xylim=([0,100],[-20,20]),\
 			label=('x','y',varname),\
 			figname=varname+prefix)
+
+def print_compared_spectrum(dirnames,filename):
+	gam = []
+	for dirname in dirnames:
+		a = sdf.read(dirname+'/'+filename)
+		dgam = sr.Get_particle_variable(a,'Gamma','electron');
+		gam.append(dgam.data)
+
+	prefix = filename[3:5]
+	df.draw_spectrum_nline(gam,dataname = dirnames,label = ('$\gamma$','N','$\gamma-N$'),weight=0,figname = 'gam'+prefix,numl = len(dirnames))
+
+#####################
+	
 
 def print_field():
 	'''print field_variable
@@ -46,24 +58,33 @@ def print_field():
 		except:
 			print('Wrong in',files,'with variable Density')
 
-def print_particle():
+def print_particle_spectrum():
 	for files in sr.Get_file('p'):
 		print(files)
 		print_spectrum(files,prefix = files[2:5]);
 	#	print('Wrong in',files,'with gam')
 
+def print_particle_spectrum_compare():
+	dirnames = ('alpha05','alpha1','alpha0')
+	ff = sr.Get_file('p',dirnames[0]);
+	print(ff)
+	for files in sr.Get_file('p',dirnames[0]):
+		print(files)
+		print_compared_spectrum(dirnames,files)
+	
+	#	print('Wrong in',files,'with gam')
 
 
 ###############main procedure 
 
 #mkdir 
-try:
-	os.mkdir('figure')
-except:
-	print("figure has been existed")
+#try:
+#	os.mkdir('figure')
+#except:
+#	print("figure has been existed")
 #print_field()
-
-print_particle()
-
-os.system('mv *.png figure/')
+#print_particle()
+print_particle_spectrum_compare();
+print('Completed')
+#os.system('mv *.png figure/')
 

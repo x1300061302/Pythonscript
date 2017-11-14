@@ -8,6 +8,7 @@ def Get_particle_variable(sdffile,var,species):
 	species is defined in input like electron trackele proton 
 	also for BlockPointVariable'''
 	import re
+	data = -1
 
 	rege_var = '';nofind = 1;
 	''' only Grid '''
@@ -58,13 +59,13 @@ def Get_extent(sdffile):
 	extent = np.array(grid.extents)
 	myextent = extent[index]
 	return myextent
-def Get_file(prefix):
+def Get_file(prefix,dirc=''):
 	import os 
 	import re
 	filename = [];
 	regu_var = r'^'+prefix+'\w+.sdf$';
 	cwd = os.getcwd()
-	for files in sorted(os.listdir(cwd)):
+	for files in sorted(os.listdir(cwd+'/'+dirc)):
 		if re.match(regu_var,files):
 			filename.append(files)
 	return filename

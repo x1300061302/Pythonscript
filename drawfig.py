@@ -78,7 +78,7 @@ def draw_spectrum(data, label, color='black', weight=0, figname='fig', logx=0, d
     return fig,pl
 
 
-def draw_spectrum_multiline(data, dataname, weight=0, figname='fig', numl=1, logx=0, display=0):
+def draw_spectrum_nline(data, dataname, label,weight=0, figname='fig', numl=1, logx=0, display=0):
     '''data is 2-D x numl array
     dataname is numl length array ['','',''] 
     figname default = fig
@@ -92,8 +92,7 @@ def draw_spectrum_multiline(data, dataname, weight=0, figname='fig', numl=1, log
 
     import matplotlib.pyplot as plt
     import numpy as np
-    line = []
-    colorline = ('red', 'black', 'blue')
+    colorline = ('r', 'k', 'b','g','y','c','w')
     fig = plt.figure(figsize=(8, 4))
     ax = plt.subplot(111)
     if weight == 0:
@@ -104,8 +103,6 @@ def draw_spectrum_multiline(data, dataname, weight=0, figname='fig', numl=1, log
                 ad = np.log10(ad)
             pl = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
                               color=colorline[i], label=dataname[i], linewidth=2)
-            line.append(pl)
-            print("has printed", dataname[i])
     else:
         print('Weight hist')
         for i in range(0, numl):
@@ -113,16 +110,21 @@ def draw_spectrum_multiline(data, dataname, weight=0, figname='fig', numl=1, log
                 data[i][:], bins=500, normed=False, weight=weight[i][:])
             if logx == 1:
                 ad = np.log10(ad)
-            plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
+            pl = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
                          color=colorline[i], label=dataname[i], linewidth=2)
-            print("has printed", dataname[i])
+    plt.xlabel(label[0])
+    plt.ylabel(label[1])
+    plt.title(label[2])
 
-    plt.legend(tuple(line), dataname, loc='upper right')
+    plt.legend()
+
     ffigname = '.'.join((figname, 'png'))
     fig.savefig(ffigname, dpi=300, facecolor='w', edgecolor='b')
+    print("has printed", ffigname)
+
     if (display):
         plt.show()
-    return fig, line
+    return fig
 
 
 def draw_field_snapshot(data, extent, label, xylim=0, Display=0, figname='fig'):
