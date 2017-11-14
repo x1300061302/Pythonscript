@@ -6,13 +6,12 @@ import os
 from const import *
 
 
-def draw_specturm(filename,prefix =''): 
+def print_spectrum(filename,prefix =''): 
 	a = sdf.read(filename)
-	dgam = sr.Get_particle_variable(a,('Gamma'),'electron');
-	print(dgam)
+	dgam = sr.Get_particle_variable(a,'Gamma','electron');
 	gam = dgam.data;
-	name = ('gamma')
-	df.draw_spectrum(gam,name,figname = 'gam'+prefix,numl=1)
+	print(gam)
+	df.draw_spectrum(gam,label =('x','y','gam'+prefix),figname = 'gam'+prefix,Display = 1)
 	print('ok')
 
 def draw_field(filename,varname,prefix=''):
@@ -49,10 +48,9 @@ def print_field():
 
 def print_particle():
 	for files in sr.Get_file('p'):
-		try:
-			draw_spectrum(files,prefix = files[2:5]);
-		except:
-			print('Wrong in',files,'with gam')
+		print(files)
+		print_spectrum(files,prefix = files[2:5]);
+	#	print('Wrong in',files,'with gam')
 
 
 
@@ -67,8 +65,5 @@ except:
 
 print_particle()
 
-try:
-	os.system('mv *.png figure/')
-except:
-	print("Wrong mv")
+os.system('mv *.png figure/')
 
