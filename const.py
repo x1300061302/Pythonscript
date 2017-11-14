@@ -13,13 +13,13 @@ r_e = qe**2.0/4.0/pi/epsilon0/me/c**2;
 E_s = alpha*qe/4.0/pi/epsilon0/r_e**2.0;
 Mev = 1e6*qe;
 
-def omega(lambda=1*um):
-	return 2*pi*c/lambda
+def omega(lambd=1*um):
+	return 2*pi*c/lambd
 
-def T0(lambda=1*um):
-	return(lambda/c)
+def T0(lambd=1*um):
+	return(lambd/c)
 
-def norme(a0=1,omega):
+def norme(omega,a0 = 1):
 	return a0*me*omega*c/qe;
 
 def nc(omega):
