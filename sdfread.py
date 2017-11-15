@@ -11,7 +11,7 @@ def Get_particle_variable(sdffile,var,species):
 	data = -1
 
 	rege_var = '';nofind = 1;
-	''' only Grid '''
+	# only Grid 
 	if var == 'Grid':
 		rege_var = r'^'+var + '_Particles' + '\w*'+species+'$' 
 	else:

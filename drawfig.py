@@ -172,7 +172,6 @@ def draw_field_snapshot(data, extent, label, xylim=0, Display=0, figname='fig'):
         plt.show()
     else:
         fig.savefig(figname, dpi=300, facecolor='w', edgecolor='b')
-
 def plot_line(xx,data,label,figname,savefig = 1):
     try:
         import matplotlib

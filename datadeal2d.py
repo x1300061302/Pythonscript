@@ -98,6 +98,32 @@ def print_particle_spectrum_compare():
 ###############Part C: some special operate
 ''' in Part C some special operators for draw typical figures to anaylize the physics
 	You MUST intepret the functions in this part to  make the function clear'''
+def enterdir(dirname):
+	import os 
+	os.chdir(dirname)
+	return os.getcwd()
+
+def outdir():
+	import os
+	os.chdir('..')
+	return os.getcwd()
+def print_partx_ex():
+	dirnames = ('a20n1w5','a20n01w5','a20n03w5','a20n05w5','a20n08w5')
+	for dirname in dirnames:
+		en_fail = 0
+		try:
+			nowdir = enterdir(dirname)
+		except:
+			en_fail = 1
+			print('no',dirname)
+	
+		draw_partx_ex()
+	
+		if (en_fail):
+			nowdir = outdir()
+	
+		print(nowdir)
+	
 def draw_partx_ex():
 	'''this function aims to draw particles' position 'scatter figure'and the 1-D field 
 	,for example, in order to analyze if particle is accelerated by ex, I'll draw the 
@@ -113,29 +139,40 @@ def draw_partx_ex():
 		dgrid = sr.Get_particle_variable(a,'Grid','electron')
 		grid = dgrid.data
 		x = grid[0]
+		y = grid[1]
 		print(type(x))
 		dgam = sr.Get_particle_variable(a,'Gamma','electron')
 		max_gam = np.max(dgam.data);
-		print(max_gam,'choose',max_gam*2/3)
-		gam = dgam.data[dgam.data > max_gam*2/3];
-		xx = x[dgam.data > max_gam*2/3]/um;
+		gam = dgam.data;
+
+		x_id = np.array(y/um > -5.0)*np.array(y/um < 5.0)\
+				  *np.array(gam > np.max(gam)*2/3);
+		xx = x[x_id]/um;
+		ggam = gam[x_id];
+		####distribution of high energy particles in xdirection
+		h_xx,a_xx=np.histogram(xx,bins=4800,normed = True) 
 		######## field ex 
 		a = sdf.read(fd[i])
 		exx = sr.Get_field_variable(a,'Ex_averaged')
-		print(exx)
 		ex = exx.data
 		nx,ny = ex.shape #3-D test should be deleted
-		print(nx,ny)
+		####charge_density
+		dnume = sr.Get_field_variable(a,'Density_electron')
+		dnump = sr.Get_field_variable(a,'Density_proton')
+		nume = dnume.data;
+		nump = dnump.data;
+		rho_q = -qe*(nume[:,ny//2] - nump[:,ny//2])
+
 		extent = sr.Get_extent(a) #2-D
-		ex = ex[:,ny/2];
+		ex = ex[:,ny//2];
 		axx = np.linspace(extent[0],extent[1],nx)/um
-		df.plot_line(axx,ex/np.max(ex),('x','ex','ex-x'),'ex',savefig = 0)
-		plt.scatter(xx,gam/np.max(gam),c = 'b',norm = 1,edgecolors = 'none')
-		plt.savefig('scatxex',dpi=300,facecolor='none',edgecolor='b')
+		df.plot_line(axx,ex/np.max(ex),('x','ex','ex-x'+str(i)),'ex',savefig = 0)
+		#plt.scatter(xx,ggam/np.max(gam),c = 'b',norm = 1,edgecolors = 'none',label='')
+		plt.plot(0.5*(a_xx[1:]+a_xx[:-1]),h_xx,'b-',linewidth =1.5,label='hist_x')
+		plt.plot(axx,rho_q/np.max(abs(rho_q)),'y-',linewidth =1.5,label='rho_q')
+		plt.legend()
+		plt.savefig('ex-partx'+str(i)+'.png',dpi=300,facecolor='none',edgecolor='b')
 		
-
-
-
-
 ###############main procedure 
+
 draw_partx_ex()
