@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import numpy as np
+colorline = ('r', 'k', 'b','g','y','c','w')
 
 def draw_angle_distribution3d(T, R, rlim=0, figname='fig', binT=360, binR=1000):
     '''T,R is N-array 
@@ -12,7 +14,6 @@ def draw_angle_distribution3d(T, R, rlim=0, figname='fig', binT=360, binR=1000):
         print('use matplotlib.use before import plt')
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
-    import numpy as np
     '''histogram'''
     H, Tedge, Redge = np.histogram2d(T, R, bins=[binT, binR])
     log10H = np.log10(H)
@@ -21,9 +22,9 @@ def draw_angle_distribution3d(T, R, rlim=0, figname='fig', binT=360, binR=1000):
     rad = np.linspace(R.min(), R.max(), binR)
     the = np.linspace(0, 2*np.pi, binT)
     r, t = np.meshgrid(rad, the)
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10,10))
     ax = plt.subplot(projection='polar')
-    pcmesh = ax.pcolormesh(t, r, log10H, vmin=0, vmax=log10H.max())
+    pcmesh = ax.pcolormesh(t, r, log10H, cmap = 'jet',vmin=0, vmax=log10H.max())
     if (rlim != 0):
         ax.set_rlim(rlim)
     cbar = fig.colorbar(pcmesh)
@@ -45,7 +46,6 @@ def draw_spectrum(data, label, color='black', weight=0, figname='fig', logx=0, d
             print('use matplotlib.use before import plt')
 
     import matplotlib.pyplot as plt
-    import numpy as np
 
     fig = plt.figure(figsize=(10, 5))
     ax = plt.subplot(111)
@@ -91,8 +91,6 @@ def draw_spectrum_nline(data, dataname, label,weight=0, figname='fig', numl=1, l
             print('use matplotlib.use before import plt')
 
     import matplotlib.pyplot as plt
-    import numpy as np
-    colorline = ('r', 'k', 'b','g','y','c','w')
     fig = plt.figure(figsize=(8, 4))
     ax = plt.subplot(111)
     if weight == 0:
@@ -144,7 +142,6 @@ def draw_field_snapshot(data, extent, label, xylim=0, Display=0, figname='fig'):
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     from mpl_toolkits.mplot3d import Axes3D
-    import numpy as np
 
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(111)
@@ -183,7 +180,6 @@ def plot_line(xx,data,label,figname,savefig = 1):
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     from mpl_toolkits.mplot3d import Axes3D
-    import numpy as np
 
     fig = plt.figure(figsize=(10,8))
     ax = fig.add_subplot(111)
@@ -194,10 +190,37 @@ def plot_line(xx,data,label,figname,savefig = 1):
     plt.title(label[2])
     
     plt.legend()
-    fig.savefig(figname,dpi = 300, facecolor = 'w',edgecolor='b')
+
+def plot_nline(xx,data,label,display=0,figname='fig'):
+    ''' xx = nlxlength np.array datatype 
+    '''
+    if (display):
+        pass
+    else:
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+        except:
+            print('use matplotlib.use before import plt')
+    import matplotlib.cm as cm
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from mpl_toolkits.mplot3d import Axes3D
+    nl = len(data)
+    fig = plt.figure(figsize=(10,8))
+    ax = fig.add_subplot(111)
+    for i in range(0,nl):
+        ax.plot(xx,data[i][:],colorline[i],label = label[2],linewidth=2.0)
+
+    ######figure setting
+    plt.xlabel(label[0])
+    plt.ylabel(label[1])
+    plt.title(label[2])
+    
+    plt.legend()
+    if (display):
+        pass
+    else:
+        fig.savefig(figname+'.png',dpi=300,facecolor='none',edgecolor='b')
 
 #**************main test
-import numpy as np
-a = np.linspace(0,1000,1000)
-xx = np.linspace(0,80,1000)
-plot_line(xx,a,('x','y','test'),'test')

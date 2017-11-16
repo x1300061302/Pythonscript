@@ -22,6 +22,28 @@ def print_spectrum(filename,prefix ='',varname = 'Gamma',species='electron'):
 	gam = dgam.data;
 	df.draw_spectrum(gam,label =('x','y',varname+prefix),figname = varname+prefix)
 	print('ok')
+def print_vad(filename,prefix):
+	a = sdf.read(filename)
+	varname = ('Gamma','Py','Pz','Grid')
+	species = 'electron'
+	gam = sr.Get_particle_variable(a,varname[0],species);
+	gam = gam.data;
+	py = sr.Get_particle_variable(a,varname[1],species);
+	print(py)
+	pz = sr.Get_particle_variable(a,varname[2],species);
+	py = py.data;
+	pz = pz.data;
+	####choose condition 
+	grid = sr.Get_particle_variable(a,varname[3],species);	
+	y = grid.data[2]
+	cr =np.array(y/um>-5)*np.array(y/um<5);
+
+	theta = np.arctan2(py,pz)
+	
+	df.draw_angle_distribution3d(T = theta[cr],\
+							  R = gam[cr],\
+							  rlim= 0 ,\
+							  figname = 'v_gam_ad'+prefix);
 
 def draw_field(filename,varname,prefix=''):
 	'''filename = 'fxxxx.sdf' 
@@ -107,6 +129,39 @@ def outdir():
 	import os
 	os.chdir('..')
 	return os.getcwd()
+def ex_max_evolution():
+	ex_max = []
+	for file in sr.Get_file('f'):
+		print(file)
+		a = sdf.read(file)
+		dex = sr.Get_field_variable(a,'Ex_averaged')
+		ex_max.append(np.max(dex.data))
+	return ex_max
+def print_ex_max_evolutions():
+	#dirnames = ('a20n1w5','a20n01w5','a20n03w5','a20n05w5','a20n08w5')
+	dirnames = ('.')
+	dt = 5; #print frequency 
+	ex_max = []
+	for dirname in dirnames:
+		en_fail = 0
+		try:
+			nowdir = enterdir(dirname)
+		except:
+			en_fail = 1
+			print('no',dirname)
+		ex_t = ex_max_evolution()
+		ex_max.append(ex_t)
+		tt = dt*np.arange(0,len(ex_t))
+		print(len(tt))
+		if (en_fail == 0):
+			nowdir = outdir()	
+			print(nowdir)
+
+	print(ex_max)
+	#draw_nline
+	df.plot_nline(xx = tt, data =ex_max,label=('t','ex_max','ex_max_evolution'),display=0)
+	print('Completed')
+
 def print_partx_ex():
 	dirnames = ('a20n1w5','a20n01w5','a20n03w5','a20n05w5','a20n08w5')
 	for dirname in dirnames:
@@ -173,6 +228,5 @@ def draw_partx_ex():
 		plt.legend()
 		plt.savefig('ex-partx'+str(i)+'.png',dpi=300,facecolor='none',edgecolor='b')
 		
-###############main procedure 
-
-draw_partx_ex()
+###############Main procedure 
+print_vad('p0016.sdf','16')
