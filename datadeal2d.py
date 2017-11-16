@@ -163,7 +163,7 @@ def print_ex_max_evolutions():
 	df.plot_nline(xx = tt, data =ex_max,label=('t','ex_max','ex_max_evolution'),display=0)
 	print('Completed')
 
-def print_partx_ex():
+def printdirs_partx_ex():
 	dirnames = ('a20n1w5','a20n01w5','a20n03w5','a20n05w5','a20n08w5')
 	for dirname in dirnames:
 		en_fail = 0
@@ -229,21 +229,30 @@ def draw_partx_ex():
 		plt.plot(axx,rho_q/np.max(abs(rho_q)),'y-',linewidth =1.5,label='rho_q')
 		plt.legend()
 		plt.savefig('ex-partx'+str(i)+'.png',dpi=300,facecolor='none',edgecolor='b')
-def print_partgam_r():
+def print_partgam_r(prefix = ''):
 	'''aims to draw the histogram figure of particle in gam and r '''
 	files = sr.Get_file(prefix = 'p')
 	for ff in files:
 		a = sdf.read(ff)
-		Gam = sr.Get_particle_variable(a,'Gamma','Electron')
+		Gam = sr.Get_particle_variable(a,'Gamma','electron')
 		Gam = Gam.data;
-		Grid = sr.Get_particle_variable(a,'Grid','Electron')
+		Grid = sr.Get_particle_variable(a,'Grid','electron')
 		Grid = Grid.data;
 		y = Grid[1];
+		Gamid = np.array(Gam > 1)#np.max(Gam)/3*2)
+		df.draw_histogram2d(y[Gamid]/um,Gam[Gamid],\
+							label=('y','$\gamma$','dist_y_$\gamma$'),\
+							bins = [300,400],\
+							#xylim = ([-10,10],[np.min(Gam[Gamid]),np.max(Gam[Gamid])]),\
+							figname = 'dist_y_gam'+prefix,\
+							display = 1,\
+							savefig = 1)
+							
 
 
 		
 ###############Main procedure 
-varname = []
-varname.append('Bz_averaged')
-print_field(varname)
+#varname = []
+#varname.append('Bz_averaged')
+#print_field(varname)
 print_partgam_r()

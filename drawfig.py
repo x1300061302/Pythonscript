@@ -4,7 +4,7 @@ import numpy as np
 colorline = ('r', 'k', 'b', 'g', 'y', 'c', 'w')
 
 
-def draw_histogram_2d(x, y, label, bins =[100,100],xylim=0, caxis=0, figname='fig', display=0,  savefig=1):
+def draw_histogram2d(x,y, label, bins =[100,200],xylim=0, caxis=0, figname='fig', display=0,  savefig=1):
     '''to draw 2-D histogram figure '''
 
     try:
@@ -27,7 +27,7 @@ def draw_histogram_2d(x, y, label, bins =[100,100],xylim=0, caxis=0, figname='fi
     # figure
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111)
-    gci = ax.pcolormesh(xx, yy, log10h, cmap='jet',
+    gci = ax.pcolormesh(xx,yy, log10h.T, cmap='jet',
                            vmin=0, vmax=np.max(log10h))
     # axis
     if (type(xylim) == np.int):
@@ -204,7 +204,7 @@ def draw_field_snapshot(data, extent, label, caxis=0, xylim=0, Display=0, fignam
         vmin = data.min()
         vmax = data.max()
 
-    gci = ax.imshow(data, extent=extent, origin='lower', cmap='jet',
+    gci = ax.imshow(data, extent=extent, origin='lower', cmap='jet',\
                     vmax=vmax, vmin=vmin, interpolation='spline36')
 
     # set axis
