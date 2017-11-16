@@ -19,9 +19,12 @@ def print_spectrum(filename,prefix ='',varname = 'Gamma',species='electron'):
 	like species = 'electron' 'proton' '''
 	a = sdf.read(filename)
 	dgam = sr.Get_particle_variable(a,varname,species);
+	dweights = sr.Get_particle_variable(a,'Weight',species);
 	gam = dgam.data;
-	df.draw_spectrum(gam,label =('x','y',varname+prefix),figname = varname+prefix)
+	weights = dweights.data;
+	df.draw_spectrum(gam,label =('x','y',varname+prefix),weights = weights, figname = varname+prefix)
 	print('ok')
+
 def print_vad(filename,prefix):
 	a = sdf.read(filename)
 	varname = ('Gamma','Py','Pz','Grid')
@@ -64,13 +67,16 @@ def print_compared_spectrum(dirnames,filename):
 	dirnames is a list or tuple of the names of directory
 	filename is the pxxxx.sdf in these directory with out prefix'''
 	gam = []
+	weights = []
 	for dirname in dirnames:
 		a = sdf.read(dirname+'/'+filename)
 		dgam = sr.Get_particle_variable(a,'Gamma','electron');
 		gam.append(dgam.data)
+		dweight = sr.Get_particle_variable(a,'Weight','electron');
+		weights.append(dweight.data)
 
 	prefix = filename[3:5]
-	df.draw_spectrum_nline(gam,dataname = dirnames,label = ('$\gamma$','N','$\gamma-N$'),weight=0,figname = 'gam'+prefix,numl = len(dirnames))
+	df.draw_spectrum_nline(gam,dataname = dirnames,label = ('$\gamma$','N','$\gamma-N$'),weights=weights,figname = 'gam'+prefix,numl = len(dirnames))
 
 #####################
 	
@@ -78,27 +84,24 @@ def print_compared_spectrum(dirnames,filename):
 	'''in this part one can set some specifical parameter through 
 	the functions in Part B for those functions in A ,in generally in part B,
 	you just need some operators for files'''
-def print_field():
+def print_field(varname = 0):
 	'''print field_variable
-	   default is Ex_averaged,Ey,EkBar_electron,Density_electorn				'''
-	for files in sr.Get_file('f'):
-		try:
-			draw_field(files,'Ex_averaged',prefix=files[2:5]);
-		except:
-			print('Wrong in',files,'with variable Ex_averaged')
-		try:
-			draw_field(files,'Ey',prefix=files[2:5]);
-		except:
-			print('Wrong in',files,'with variable Ey')
-		try:
-			draw_field(files,'EkBar_electron',prefix=files[2:5]);
-		except:
-			print('Wrong in',files,'with variable EkBar')
-		try:
-			draw_field(files,'Density_electron',prefix=files[2:5]);
-		except:
-			print('Wrong in',files,'with variable Density')
-
+	   default is Ex_averaged,Ey,EkBar_electron,Density_electorn and Bz_averaged for 2-D			'''
+	if (type(varname) == np.int):
+		varname = []
+		varname.append('Ex_averaged')
+		varname.append('Ey')
+		varname.append('EkBar_electron')
+		varname.append('Density_electron')
+		varname.append('Bz_averaged')
+	else:
+		for files in sr.Get_file('f'):
+			for var in varname:
+				try:
+					draw_field(files,var,prefix=files[2:5]);
+				except:
+					print('Wrong in',files,var)
+		
 def print_particle_spectrum():
 	'''just print the electron's spectrum'''
 	for files in sr.Get_file('p'):
@@ -108,11 +111,9 @@ def print_particle_spectrum():
 
 def print_particle_spectrum_compare():
 
-	dirnames = ('alpha05','alpha1','alpha0')
+	dirnames = ('a20n01w5','a20n03w5','a20n05w5','a20n08w5','a20n1w5')
 	ff = sr.Get_file('p',dirnames[0]);
-	print(ff)
-	for files in sr.Get_file('p',dirnames[0]):
-		print(files)
+	for files in ff:
 		print_compared_spectrum(dirnames,files)
 	
 	#	print('Wrong in',files,'with gam')
@@ -174,7 +175,7 @@ def print_partx_ex():
 	
 		draw_partx_ex()
 	
-		if (en_fail):
+		if (en_fail==0):
 			nowdir = outdir()
 	
 		print(nowdir)
@@ -205,7 +206,8 @@ def draw_partx_ex():
 		xx = x[x_id]/um;
 		ggam = gam[x_id];
 		####distribution of high energy particles in xdirection
-		h_xx,a_xx=np.histogram(xx,bins=4800,normed = True) 
+		h_xx,a_xx=np.histogram(xx,bins=4800,normed = False) 
+		h_xx = h_xx/np.max(h_xx)
 		######## field ex 
 		a = sdf.read(fd[i])
 		exx = sr.Get_field_variable(a,'Ex_averaged')
@@ -221,12 +223,27 @@ def draw_partx_ex():
 		extent = sr.Get_extent(a) #2-D
 		ex = ex[:,ny//2];
 		axx = np.linspace(extent[0],extent[1],nx)/um
-		df.plot_line(axx,ex/np.max(ex),('x','ex','ex-x'+str(i)),'ex',savefig = 0)
+		df.plot_line(axx,ex/np.max(ex),('x','a.u.','ex-x'+str(i)),'ex',savefig = 0)
 		#plt.scatter(xx,ggam/np.max(gam),c = 'b',norm = 1,edgecolors = 'none',label='')
 		plt.plot(0.5*(a_xx[1:]+a_xx[:-1]),h_xx,'b-',linewidth =1.5,label='hist_x')
 		plt.plot(axx,rho_q/np.max(abs(rho_q)),'y-',linewidth =1.5,label='rho_q')
 		plt.legend()
 		plt.savefig('ex-partx'+str(i)+'.png',dpi=300,facecolor='none',edgecolor='b')
+def print_partgam_r():
+	'''aims to draw the histogram figure of particle in gam and r '''
+	files = sr.Get_file(prefix = 'p')
+	for ff in files:
+		a = sdf.read(ff)
+		Gam = sr.Get_particle_variable(a,'Gamma','Electron')
+		Gam = Gam.data;
+		Grid = sr.Get_particle_variable(a,'Grid','Electron')
+		Grid = Grid.data;
+		y = Grid[1];
+
+
 		
 ###############Main procedure 
-print_vad('p0016.sdf','16')
+varname = []
+varname.append('Bz_averaged')
+print_field(varname)
+print_partgam_r()
