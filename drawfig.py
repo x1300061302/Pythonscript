@@ -50,6 +50,7 @@ def draw_histogram2d(x,y, label, bins =[100,200],xylim=0, caxis=0, figname='fig'
         plt.show()
     if (savefig):
         fig.savefig(ffigname, dpi=300, facecolor='none', edgecolor='b')
+        plt.close()
 
 
 def draw_angle_distribution3d(T, R, rlim=0, figname='fig', binT=360, binR=1000):
@@ -78,7 +79,7 @@ def draw_angle_distribution3d(T, R, rlim=0, figname='fig', binT=360, binR=1000):
         ax.set_rlim(rlim)
     cbar = fig.colorbar(pcmesh)
     ffigname = '.'.join([figname, 'png'])
-    fig.savefig(ffigname, dpi=300, facecolor='w', edgecolor='b')
+    fig.savefig(ffigname, dpi=300, facecolor='none', edgecolor='b')
     print(ffigname, 'has been printed')
 
 
@@ -120,7 +121,7 @@ def draw_spectrum(data, label, color='black', weights=0, figname='fig', logx=0, 
     plt.legend()
 
     ffigname = '.'.join([figname, 'png'])
-    fig.savefig(ffigname, dpi=300, facecolor='w', edgecolor='b')
+    fig.savefig(ffigname, dpi=300, facecolor='none', edgecolor='b')
     print(ffigname, 'has been printed')
     if (display):
         plt.show()
@@ -167,7 +168,7 @@ def draw_spectrum_nline(data, dataname, label, weights=0, figname='fig', numl=1,
     plt.legend()
 
     ffigname = '.'.join((figname, 'png'))
-    fig.savefig(ffigname, dpi=300, facecolor='w', edgecolor='b')
+    fig.savefig(ffigname, dpi=300, facecolor='none', edgecolor='b')
     print("has printed", ffigname)
 
     if (display):
@@ -197,7 +198,7 @@ def draw_field_snapshot(data, extent, label, caxis=0, xylim=0, Display=0, fignam
     ax = fig.add_subplot(111)
 
     nx, ny = data.shape
-    if (caxis == 0):
+    if (type(caxis) != np.int):
         vmin = caxis[0]
         vmax = caxis[1]
     else:
@@ -224,7 +225,8 @@ def draw_field_snapshot(data, extent, label, caxis=0, xylim=0, Display=0, fignam
     if (Display):
         plt.show()
     else:
-        fig.savefig(figname, dpi=300, facecolor='w', edgecolor='b')
+        fig.savefig(figname, dpi=300, facecolor='none', edgecolor='b')
+        plt.close()
 
 
 def plot_line(xx, data, label, figname, savefig=1):

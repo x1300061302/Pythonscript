@@ -52,6 +52,7 @@ def Get_field_variable(sdffile,var):
 		print(dic.keys())
 		print('******************************************************')
 	return data
+
 def Get_extent(sdffile):
 	'''return grid.extents which is a list of [xmin,ymin,xmax,ymax] for 2D
 	 or xmin,ymin,zmin,xmax,ymax,zmax for 3D but I just write the version for 2D'''
@@ -61,6 +62,7 @@ def Get_extent(sdffile):
 	extent = np.array(grid.extents)
 	myextent = extent[index]
 	return myextent
+
 def Get_file(prefix,dirc=''):
 	''' prefix = 'p' or 'f' 
 	dirc is the name directory of the sdf file
@@ -74,4 +76,3 @@ def Get_file(prefix,dirc=''):
 		if re.match(regu_var,files):
 			filename.append(files)
 	return filename
-

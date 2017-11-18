@@ -38,7 +38,7 @@ def print_vad(filename,prefix):
 	pz = pz.data;
 	####choose condition 
 	grid = sr.Get_particle_variable(a,varname[3],species);	
-	y = grid.data[2]
+	y = grid.data[1]
 	cr =np.array(y/um>-5)*np.array(y/um<5);
 
 	theta = np.arctan2(py,pz)
@@ -96,11 +96,11 @@ def print_field(varname = 0):
 		varname.append('Bz_averaged')
 	else:
 		for files in sr.Get_file('f'):
-			for var in varname:
-				try:
+			if (files =='f0000.sdf'):
+				pass
+			else:
+				for var in varname:
 					draw_field(files,var,prefix=files[2:5]);
-				except:
-					print('Wrong in',files,var)
 		
 def print_particle_spectrum():
 	'''just print the electron's spectrum'''
@@ -180,7 +180,7 @@ def printdirs_partx_ex():
 	
 		print(nowdir)
 	
-def draw_partx_ex():
+def draw_partx_ex(beg =0):
 	'''this function aims to draw particles' position 'scatter figure'and the 1-D field 
 	,for example, in order to analyze if particle is accelerated by ex, I'll draw the 
 	higher energy particles in x with ex distribution'''
@@ -189,7 +189,7 @@ def draw_partx_ex():
 	fd = sr.Get_file(prefix = 'f')
 	print(pd)
 	print(fd)
-	for i in range(0,len(pd)):
+	for i in range(beg,len(pd)):
 		#high energy electron x-pos
 		a = sdf.read(pd[i]) 
 		dgrid = sr.Get_particle_variable(a,'Grid','electron')
@@ -208,11 +208,13 @@ def draw_partx_ex():
 		####distribution of high energy particles in xdirection
 		h_xx,a_xx=np.histogram(xx,bins=4800,normed = False) 
 		h_xx = h_xx/np.max(h_xx)
-		######## field ex 
+		######## field ex,ey 
 		a = sdf.read(fd[i])
 		exx = sr.Get_field_variable(a,'Ex_averaged')
 		ex = exx.data
 		nx,ny = ex.shape #3-D test should be deleted
+		eyy = sr.Get_field_variable(a,'Ey')
+		ey = eyy.data
 		####charge_density
 		dnume = sr.Get_field_variable(a,'Density_electron')
 		dnump = sr.Get_field_variable(a,'Density_proton')
@@ -224,11 +226,13 @@ def draw_partx_ex():
 		ex = ex[:,ny//2];
 		axx = np.linspace(extent[0],extent[1],nx)/um
 		df.plot_line(axx,ex/np.max(ex),('x','a.u.','ex-x'+str(i)),'ex',savefig = 0)
+		plt.plot(axx,ey/np.max(ey),'g-',linewidth =1.5,label='ey')
 		#plt.scatter(xx,ggam/np.max(gam),c = 'b',norm = 1,edgecolors = 'none',label='')
 		plt.plot(0.5*(a_xx[1:]+a_xx[:-1]),h_xx,'b-',linewidth =1.5,label='hist_x')
 		plt.plot(axx,rho_q/np.max(abs(rho_q)),'y-',linewidth =1.5,label='rho_q')
 		plt.legend()
 		plt.savefig('ex-partx'+str(i)+'.png',dpi=300,facecolor='none',edgecolor='b')
+		plt.close()
 def print_partgam_r(prefix = ''):
 	'''aims to draw the histogram figure of particle in gam and r '''
 	files = sr.Get_file(prefix = 'p')
@@ -252,7 +256,4 @@ def print_partgam_r(prefix = ''):
 
 		
 ###############Main procedure 
-#varname = []
-#varname.append('Bz_averaged')
-#print_field(varname)
-print_partgam_r()
+draw_partx_ex(beg = 4)
