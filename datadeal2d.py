@@ -40,7 +40,6 @@ def print_vad(filename,prefix):
 	grid = sr.Get_particle_variable(a,varname[3],species);	
 	y = grid.data[1]
 	cr =np.array(y/um>-5)*np.array(y/um<5);
-
 	theta = np.arctan2(py,pz)
 	
 	df.draw_angle_distribution3d(T = theta[cr],\
@@ -121,6 +120,54 @@ def print_particle_spectrum_compare():
 ###############Part C: some special operate
 ''' in Part C some special operators for draw typical figures to anaylize the physics
 	You MUST intepret the functions in this part to  make the function clear'''
+def IDrecord():
+	ff = 'p0016.sdf'
+	a = sdf.read(ff)
+	gam = sr.Get_particle_variable(a,'Gamma','electron')
+	gam = gam.data
+	ID =sr.Get_particle_variable(a,'ID','electron')
+	ID = ID.data;
+	IDre = ID[gam > gam*2/3];
+	return IDre
+
+def trackparticle_ex_max(IDre):
+	fp = sr.Get_file('p')
+	ff = sr.Get_file('f')
+	for i in range(1,len(fp)):
+		a = sdf.read(fp[i])
+		ID =sr.Get_particle_variable(a,'ID','electron')
+		ID =ID.data;
+		grid = sr.Get_particle_variable(a,'Grid','electron')
+		x = grid.data[0]
+		xx = np.zeros([10,len(fp)])
+#record the high energy position 
+		for idd in range(0,10):
+			pos = np.where(ID == IDre[idd])
+			xx[idd,i] = pos[0][0]
+		xemax = np.zeros([1,len(fp)])
+#ex max position
+		a= sdf.read(ff[i])
+		ex = sr.Get_field_variable(a,'Ex_averaged');
+		grid = sr.Get_field_variable(a,'Grid_Grid_mid');
+		ex = ex.data
+		nx,ny = grid.dims 
+		ex = ex[:,ny//2]
+		pos_emax = np.where(ex == np.max(ex));
+		xemax[1,i] = grid.data[0][pos_emax[0][0]]		
+	
+	print(xemax[1,:])
+	
+	tt = np.linspace(0,len(fp)*5,len(fp)-1)
+#draw figure
+	fig = plt.figure()	
+	ax = fig.add_subplot(111)
+	plt.plot(tt,xemax[1,:],'r-',linewidth =1.5,label='xemax')
+	plt.plot(tt,xx[1,:],'y-',linewidth =1.5,label='part1')
+	plt.plot(tt,xx[2,:],'g-',linewidth =1.5,label='part2')
+	plt.legend()
+	plt.savefig('trackpart_exmax'+'.png',dpi=300,facecolor='none',edgecolor='b')
+
+
 def enterdir(dirname):
 	import os 
 	os.chdir(dirname)
@@ -256,4 +303,5 @@ def print_partgam_r(prefix = ''):
 
 		
 ###############Main procedure 
-draw_partx_ex(beg = 4)
+IDre = IDrecord()
+print(IDre)
