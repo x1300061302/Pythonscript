@@ -1,7 +1,19 @@
 #!/usr/bin/python
-
+from const import *
 import numpy as np
-colorline = ('r', 'k', 'b', 'g', 'y', 'c', 'w')
+colorline = MYLinecolor; 
+
+def gifmake(gifname = 'gif.gif',duration = 0.1,beg =0,end=0,prefix='.png'):
+    import matplotlib.pyplot as plt
+    import imageio,os
+    images=[]
+    filenames=sorted((fn for fn in os.listdir('.') if fn.endswith(prefix)))
+    if (end == 0 ):
+        end = len(filenames);
+    for i in range(beg,end):
+        filename = filenames[i];
+        images.append(imageio.imread(filename))
+        imageio.mimsave(gifname, images,duration=duration)
 
 
 def draw_histogram2d(x,y, label, bins =[100,200],xylim=0, caxis=0, figname='fig', display=0,  savefig=1):
@@ -36,9 +48,11 @@ def draw_histogram2d(x,y, label, bins =[100,200],xylim=0, caxis=0, figname='fig'
         ax.set_xlim(xylim[0])
         ax.set_ylim(xylim[1])
     # label
-    plt.xlabel(label[0])
-    plt.ylabel(label[1])
-    plt.title(label[2])
+    plt.xlabel(label[0],fontsize=20)
+    plt.ylabel(label[1],fontsize=20)
+    plt.title(label[2],fontsize=20)
+    plt.xticks(fontsize=20);
+    plt.yticks(fontsize=20);
     # colorbar
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='3%', pad=0.1)
@@ -53,15 +67,10 @@ def draw_histogram2d(x,y, label, bins =[100,200],xylim=0, caxis=0, figname='fig'
         plt.close()
 
 
-def draw_angle_distribution3d(T, R, rlim=0, figname='fig', binT=360, binR=1000):
+def draw_angle_distribution3d(T, R, label = 0,tlim = 0,rlim=0, figname='fig', binT=360, binR=1000,caxis=0,Display=1):
     '''T,R is N-array 
     rlim = 0 means default else rlim = [r_min,r_max]
     draw angle distribution histogram'''
-    try:
-        import matplotlib
-        matplotlib.use('Agg')
-    except:
-        print('use matplotlib.use before import plt')
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     '''histogram'''
@@ -70,20 +79,37 @@ def draw_angle_distribution3d(T, R, rlim=0, figname='fig', binT=360, binR=1000):
     print("get histogram")
     '''change T,R to meshgrid'''
     rad = np.linspace(R.min(), R.max(), binR)
-    the = np.linspace(0, 2*np.pi, binT)
+    if(type(tlim)!=np.int):
+	    the = np.linspace(tlim[0],tlim[1],binT)
+    else:
+        the = np.linspace(0, 2*np.pi, binT)
     r, t = np.meshgrid(rad, the)
     fig = plt.figure(figsize=(10, 10))
     ax = plt.subplot(projection='polar')
-    pcmesh = ax.pcolormesh(t, r, log10H, cmap='jet', vmin=0, vmax=log10H.max())
-    if (rlim != 0):
+    if (type(caxis) != np.int):
+        vmin = caxis[0]
+        vmax = caxis[1]
+    else:
+        vmin = 0 
+        vmax = log10H.max() 
+    pcmesh = ax.pcolormesh(t, r, log10H, cmap='jet', vmin=vmin, vmax=vmax)
+    if (type(rlim) != np.int):
         ax.set_rlim(rlim)
+    else:
+	    ax.set_rlim(np.min(R),np.max(R));
     cbar = fig.colorbar(pcmesh)
     ffigname = '.'.join([figname, 'png'])
+    plt.show()
+    if (type(label)  != np.int):
+        plt.title(label[2]);
+    else:
+        plt.title(figname)
     fig.savefig(ffigname, dpi=300, facecolor='none', edgecolor='b')
     print(ffigname, 'has been printed')
+    plt.close()
 
 
-def draw_spectrum(data, label, color='black', weights=0, figname='fig', logx=0, display=0):
+def draw_spectrum(data, label, color='black', weights=0, figname='fig', logx=0, display=0,grid = True):
     '''data is 1-D  array
     label = ['xlabel','ylabel','title'] 
     figname default = fig
@@ -97,11 +123,12 @@ def draw_spectrum(data, label, color='black', weights=0, figname='fig', logx=0, 
 
     import matplotlib.pyplot as plt
 
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(20, 10))
     ax = plt.subplot(111)
     if (type(weights) == np.int):
         print('No Weights hist')
         hd, ad = np.histogram(data, bins=500, normed=False)
+        hd = hd/(ad[1]-ad[0])
         if logx == 1:
             ad = np.log10(ad)
         pl = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
@@ -109,16 +136,19 @@ def draw_spectrum(data, label, color='black', weights=0, figname='fig', logx=0, 
     else:
         print('Weights hist')
         hd, ad = np.histogram(data, bins=500, normed=False, weights=weights)
+        hd = hd/(ad[1]-ad[0])
         if logx == 1:
             ad = np.log10(ad)
         pl = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
                           color=color, label=label[2], linewidth=2)
 
-    plt.xlabel(label[0])
-    plt.ylabel(label[1])
-    plt.title(label[2])
-
-    plt.legend()
+    plt.xlabel(label[0],fontsize=20)
+    plt.ylabel(label[1],fontsize=20)
+    plt.title(label[2],fontsize = 20)
+    plt.xticks(fontsize = 20)
+    plt.yticks(fontsize = 20)
+    plt.legend(fontsize=20)
+    plt.grid(grid);
 
     ffigname = '.'.join([figname, 'png'])
     fig.savefig(ffigname, dpi=300, facecolor='none', edgecolor='b')
@@ -128,7 +158,7 @@ def draw_spectrum(data, label, color='black', weights=0, figname='fig', logx=0, 
     return fig, pl
 
 
-def draw_spectrum_nline(data, dataname, label, weights=0, figname='fig', numl=1, logx=0, display=0):
+def draw_spectrum_nline(data, dataname, label, xylim = 0,weights=0, figname='fig', numl=1, logx=0, display=0,grid = True):
     '''data is 2-D x numl array
     dataname is numl length array ['','',''] 
     figname default = fig
@@ -141,7 +171,7 @@ def draw_spectrum_nline(data, dataname, label, weights=0, figname='fig', numl=1,
             print('use matplotlib.use before import plt')
 
     import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=(8, 4))
+    fig = plt.figure(figsize=(20, 10))
     ax = plt.subplot(111)
     if (type(weights) == np.int):
         print('No Weights hist')
@@ -161,11 +191,16 @@ def draw_spectrum_nline(data, dataname, label, weights=0, figname='fig', numl=1,
             plsy = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
                                 color=colorline[i], label=dataname[i], linewidth=2)
 
-    plt.xlabel(label[0])
-    plt.ylabel(label[1])
-    plt.title(label[2])
+    if (type(xylim) != np.int):
+        plt.xlim(xylim[0]);
+        plt.ylim(xylim[1]);
 
-    plt.legend()
+    plt.xlabel(label[0],fontsize=20)
+    plt.ylabel(label[1],fontsize=20)
+    plt.title(label[2],fontsize = 20)
+    plt.xticks(fontsize = 20)
+    plt.legend(fontsize=20)
+    plt.grid(grid);
 
     ffigname = '.'.join((figname, 'png'))
     fig.savefig(ffigname, dpi=300, facecolor='none', edgecolor='b')
@@ -173,7 +208,7 @@ def draw_spectrum_nline(data, dataname, label, weights=0, figname='fig', numl=1,
 
     if (display):
         plt.show()
-    return fig
+    return ax 
 
 
 def draw_field_snapshot(data, extent, label, caxis=0, xylim=0, Display=0, figname='fig'):

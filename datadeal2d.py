@@ -5,9 +5,10 @@ import sdf
 import os
 import matplotlib
 import re 
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from const import *
+linecolorstyle = ['ro-','g1-','bv-','c1-','ys-','kp-']
 
 ###########Part A: is common functions which need some specifical parameter 
 ''' in this part functions should use sdfread to get data and combine them
@@ -128,10 +129,13 @@ def IDrecord():
 	gam = gam.data
 	ID =sr.Get_particle_variable(a,'ID','electron')
 	ID = ID.data;
+	grid =sr.Get_particle_variable(a,'Grid','electron')
+	gdx = grid.data[0]
+	index = np.array(gam > np.max(gam)*2/3)*np.array()
 	IDre = ID[gam > np.max(gam)*2/3];
 	return IDre
 
-def trackparticle_ex_max(IDre = []):
+def trackparticle_ex_max(IDre):
 	fp = sr.Get_file('p')
 	ff = sr.Get_file('f')
 	xx = np.zeros([10,len(ff)])
@@ -139,7 +143,7 @@ def trackparticle_ex_max(IDre = []):
 	xemax = np.zeros([1,len(ff)])
 
 	for i in range(0,len(ff)):
-		if re.match(r'^w0000.sdf$',fp(i)):
+		if re.match(r'^w0000.sdf$',fp[i]):
 			pass
 		else:
 			a = sdf.read(fp[i])
@@ -165,17 +169,19 @@ def trackparticle_ex_max(IDre = []):
 			pos_emax = np.where(ex == np.max(ex));
 			xemax[0,i] = grid.data[0][pos_emax[0][0]]		
 		
-		print(xemax[0,:])
-		print(xx[:,0])
+	print(xemax[0,:])
+#	print(xx[0,:])
 	
 #draw figure
 	fig = plt.figure()	
 	ax = fig.add_subplot(111)
 	plt.plot(tt,xemax[0,1:]/um,'r-',linewidth =1.5,label='xemax')
-	plt.plot(tt,xx[0,1:],'y-',linewidth =1.5,label='part1')
-	plt.plot(tt,xx[1,1:],'g-',linewidth =1.5,label='part2')
-	plt.plot(tt,xx[2,1:],'k-',linewidth =1.5,label='part3')
+	plt.plot(tt,xx[0,1:]/um,'y-',linewidth =1.5,label='part1')
+	plt.plot(tt,xx[1,1:]/um,'g-',linewidth =1.5,label='part2')
+	plt.plot(tt,xx[2,1:]/um,'k-',linewidth =1.5,label='part3')
 	plt.legend()
+	plt.xlabel('t/T0')
+	plt.ylabel('x/um')
 	plt.savefig('trackpart_exmax'+'.png',dpi=300,facecolor='none',edgecolor='b')
 
 
@@ -196,33 +202,56 @@ def ex_max_evolution():
 		dex = sr.Get_field_variable(a,'Ex_averaged')
 		ex_max.append(np.max(dex.data))
 	return ex_max
-def print_ex_max_evolutions():
-	#dirnames = ('a20n1w5','a20n01w5','a20n03w5','a20n05w5','a20n08w5')
-	dirnames = ('.')
+def print_xemax():
+	dataname = ('n01','n03','n05','n08','n1')
+	xemax = []
+	for name in dataname:
+		xemax.append(np.load(name+'xemax.npy')[0])
+	#dirnames = ('.')
 	dt = 5; #print frequency 
-	ex_max = []
-	for dirname in dirnames:
-		en_fail = 0
-		try:
-			nowdir = enterdir(dirname)
-		except:
-			en_fail = 1
-			print('no',dirname)
-		ex_t = ex_max_evolution()
-		ex_max.append(ex_t)
-		tt = dt*np.arange(0,len(ex_t))
-		print(len(tt))
-		if (en_fail == 0):
-			nowdir = outdir()	
-			print(nowdir)
-
-	print(ex_max)
+	tt = dt*np.arange(0,len(xemax[0]))
 	#draw_nline
-	df.plot_nline(xx = tt, data =ex_max,label=('t','ex_max','ex_max_evolution'),display=0)
+	fig = plt.figure(figsize=[10,8])
+	ax = fig.add_subplot(111)
+	v = np.zeros(len(dataname))
+	for i in range(0,len(dataname)):
+		v[i] = (xemax[i][16]-xemax[i][10])/um/30;
+		ax.plot(tt,xemax[i][0:25]/um,linecolorstyle[i],label = dataname[i]+' v='+str(v[i])[0:5])
+	
+	#figureset 
+	plt.xlabel('t/T_0')
+	plt.ylabel('x/um')
+	plt.title('$pos_{exmax}-t$')
+	plt.legend()
+	plt.show()
+	fig.savefig('xemax.png',dpi=300,facecolor='w',edgecolor='b')
+	print(v)
+	print('Completed')
+
+def print_ex_max_evolutions():
+	dataname = ('n01','n03','n05','n08','n1')
+	ex_max = []
+	for name in dataname:
+		ex_max.append(np.load(name+'ex_t.npy'))
+	#dirnames = ('.')
+	dt = 5; #print frequency 
+	tt = dt*np.arange(0,len(ex_max[0]))
+	print(len(tt))
+	print(len(ex_max[0]))
+	#draw_nline
+	fig = plt.figure(figsize=[10,8])
+	ax = fig.add_subplot(111)
+
+	for i in range(0,len(dataname)):
+		ax.plot(tt,ex_max[i][0:25],label = dataname[i])
+
+	plt.legend()
+	fig.savefig('ex_t.png',dpi=300,facecolor='w',edgecolor='b')
 	print('Completed')
 
 def printdirs_partx_ex():
 	dirnames = ('a20n1w5','a20n01w5','a20n03w5','a20n05w5','a20n08w5')
+	maker
 	for dirname in dirnames:
 		en_fail = 0
 		try:
@@ -273,6 +302,11 @@ def draw_partx_ex(beg =0):
 		nx,ny = ex.shape #3-D test should be deleted
 		eyy = sr.Get_field_variable(a,'Ey')
 		ey = eyy.data
+		#####ekbar density 
+		ekbar = sr.Get_field_variable(a,'Ekbar_electron')
+		ekbar = ekbar.data;
+		ekbar = ekbar[:,ny//2]
+
 		####charge_density
 		dnume = sr.Get_field_variable(a,'Density_electron')
 		dnump = sr.Get_field_variable(a,'Density_proton')
@@ -283,11 +317,13 @@ def draw_partx_ex(beg =0):
 		extent = sr.Get_extent(a) #2-D
 		ex = ex[:,ny//2];
 		axx = np.linspace(extent[0],extent[1],nx)/um
-		df.plot_line(axx,ex/np.max(ex),('x','a.u.','ex-x'+str(i)),'ex',savefig = 0)
-		plt.plot(axx,ey/np.max(ey),'g-',linewidth =1.5,label='ey')
+		#ex 
+		#plt.plot(axx,ex/np.max(ex),'r-',linewith = 1.5,label='ex')
+		#plt.plot(axx,ey/np.max(ey),'g-',linewidth =1.5,label='ey')
 		#plt.scatter(xx,ggam/np.max(gam),c = 'b',norm = 1,edgecolors = 'none',label='')
-		plt.plot(0.5*(a_xx[1:]+a_xx[:-1]),h_xx,'b-',linewidth =1.5,label='hist_x')
+		#plt.plot(0.5*(a_xx[1:]+a_xx[:-1]),h_xx,'b-',linewidth =1.5,label='hist_x')
 		plt.plot(axx,rho_q/np.max(abs(rho_q)),'y-',linewidth =1.5,label='rho_q')
+		plt.plot(axx,ekbar/np.max(ekbar),'k--',linewidth = 1.0,label='ekbar')
 		plt.legend()
 		plt.savefig('ex-partx'+str(i)+'.png',dpi=300,facecolor='none',edgecolor='b')
 		plt.close()
@@ -309,9 +345,50 @@ def print_partgam_r(prefix = ''):
 							figname = 'dist_y_gam'+prefix,\
 							display = 1,\
 							savefig = 1)
-							
-
-
-		
+def plot_trackpart():
+	dataname = 'n05'
+	track = np.load(dataname+'.npy')	
+	fig = plt.figure(figsize=[10,8])
+	ax = fig.add_subplot(111)
+	tt = 5*np.linspace(0,120,25)
+	print(track.shape)
+	print(len(track[0]))
+	print(len(tt))
+	for i in range(0,10):
+		ax.plot(tt,track[i][:]/um,label='part'+str(i))
+	
+	#figureset 
+	plt.xlabel('t/T_0')
+	plt.ylabel('x/um')
+	plt.title('$pos_{trackele}-t$')
+	plt.legend()
+	plt.show()
+	fig.savefig(dataname+'.png',dpi=300,facecolor='w',edgecolor='b')
+	print('Completed')
+def check_region_gamma_value(species='electron'):
+	a = sdf.read('p0016.sdf')
+	xemax = np.load('xemax.npy')
+	xemax = xemax[0][16]
+	gam = sr.Get_particle_variable(a,'Gamma',species=species)
+	gam = gam.data;
+	grid = sr.Get_particle_variable(a,'Grid',species=species)
+	gdx = grid.data[0]
+	gdy = grid.data[1]
+	index = np.array(gdy > -5*um)*np.array(gdy<5*um)
+	index = index*np.array(gdx > xemax-0.5*um)*np.array(gdx<xemax+0.5*um)
+	mgam = np.mean(gam[index])
+	print(mgam)
+	np.save('mgam.npy',mgam)
+##########Part D dealwith npy file
+def get_npy():
+	try:
+		os.mkdir('data')
+	except:
+		pass
+	sr.Get_partvar_npy()
+	sr.Get_fieldvar_npy()
+	os.system('mv *.npy data/')
 ###############Main procedure 
-trackparticle_ex_max()
+
+#df.draw_spectrum(gamma*0.511,label=saxis)
+
