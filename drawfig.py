@@ -27,13 +27,30 @@ def Create_Figure(figsize=[15, 10], x=1, y=1, n=1, polar='False'):
 
 
 # ------------Figure/axis setting------$$$$$$$$$
-def Figure_setting():
+def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklabal=0,ytickrange=0):
     # x-axis
     import matplotlib.pyplot as plt
-    plt.xlabel('x');
-    # ***********Draw----------------$$$$$$$$$$$$$
+    plt.xlabel(axesname[0],fontsize=fs); 
+    plt.xticks(fontsize=fs);
+   
+    
+    #y-axis
+    plt.ylabel(axesname[1],fontsize=fs);
+    plt.yticks(fontsize=fs);
+    
+    #title
+    plt.title(axesname[2],fontsize=fs);
+    
 
+def Colorbar_set(ax,gci,pos='right',size='3%',pad=0.1):
+    import matplotlib.cm as cm
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    import matplotlib.pyplot as plt
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes(pos, size=size, pad=pad)
+    cbar = plt.colorbar(gci, cax)
 
+#***********Draw----------------$$$$$$$$$$$$$    
 def draw_histogram2d(ax, x, y, label, bins=[100, 200], xylim=0, caxis=0, fontsize=20):
     '''to draw 2-D histogram figure 
        handle = ax
@@ -43,9 +60,8 @@ def draw_histogram2d(ax, x, y, label, bins=[100, 200], xylim=0, caxis=0, fontsiz
        xylim = [[xlim],[ylim]] means the region to show
        caxis = region of colobar
        '''
-    import matplotlib.cm as cm
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
+ 
     h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins)
     log10h = np.log10(h_xy)
     print('get histogram')
@@ -56,11 +72,8 @@ def draw_histogram2d(ax, x, y, label, bins=[100, 200], xylim=0, caxis=0, fontsiz
     # draw
     gci = ax.pcolormesh(xx, yy, log10h.T, cmap='jet',
                         vmin=0, vmax=np.max(log10h))
+    
     # colorbar
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='3%', pad=0.1)
-    cbar = plt.colorbar(gci, cax)
-
 
 def draw_angle_distribution3d(ax, T, R, label=0, tlim=0, rlim=0, binT=360, binR=1000, caxis=0):
     ''' ax should be polarization
@@ -172,9 +185,7 @@ def draw_field_snapshot(ax, data, extent, caxis=0):
     gci = ax.imshow(data, extent=extent, origin='lower', cmap='jet',
                     vmax=vmax, vmin=vmin, interpolation='spline36')
     # colorbar
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='3%', pad=0.1)
-    cbar = plt.colorbar(gci, cax)
+    return ax,gci;
 
 
 def draw_line(ax, xx, data, label, lw=2.0):
