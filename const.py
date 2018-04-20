@@ -31,3 +31,10 @@ def Get_nc(omega):
 #linestyle 
 MYLinecolor = ['r','g','b','c','y','k']
 MYLinestyle = ['o-','1-','v-','1-','s-','p-']
+import sdf
+import sdfread as sr
+import drawfig as df
+import matplotlib.pyplot as plt
+import imp
+import os 
+import sys

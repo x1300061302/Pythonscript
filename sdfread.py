@@ -52,7 +52,19 @@ def Get_particle_variable(sdffile,var,species):
 		print('Can Not Find '+var+' of '+species)
 		print(dic.keys())
 	return data.data
-
+def Get_particle_theta(sdffile,species,dim):
+    if (dim == 2):
+        py = Get_particle_variable(sdffile,'Py',species);
+        px = Get_particle_variable(sdffile,'Px',species);
+        theta = np.arctan2(py,px);
+        return theta
+    elif (dim == 3):
+        py = Get_particle_variable(sdffile,'Py',species);
+        pz = Get_particle_variable(sdffile,'Pz',species);
+        px = Get_particle_variable(sdffile,'Px',species);
+        theta = np.arctan2(np.sqrt(py**2+pz**2),px);
+        return theta
+        
 
 def Get_field_variable(sdffile,var):
 	
@@ -111,6 +123,19 @@ def Get_file(prefix,dirc=''):
 		if re.match(regu_var,files):
 			filename.append(files)
 	return filename
+
+def Get_laser_en(sdffile):
+    data = sdffile.__dict__['Absorption_Total_Laser_Energy_Injected__J_'];
+    data = data.data;
+    return data;
+
+###############--------------------############some operation:
+def Get_hist_var(var,bins=500,normed=False):
+    hd, ad = np.histogram(var, bins=bins, normed=normed)
+    hd = hd/(ad[1]-ad[0])
+    axx = 0.5*(ad[1:]+ad[:-1]);
+    return hd,axx
+
 
 ##test region
 #Get_partvar_npy()
