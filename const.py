@@ -1,6 +1,12 @@
 #! /usr/bin/python
 import numpy as np
 um = np.float(1e-6);
+mm = np.float(1e-3)
+cm = np.float(1e-2);
+fs = np.float(1e-15);
+ns = np.float(1e-9);
+nm = np.float(1e-9);
+
 pi = 3.1415926;
 me = 9.1e-31;
 c = np.float(3e8);
@@ -35,6 +41,7 @@ import sdf
 import sdfread as sr
 import drawfig as df
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import imp
 import os 
 import sys

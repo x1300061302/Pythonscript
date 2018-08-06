@@ -2,8 +2,22 @@
 from const import *
 import numpy as np
 colorline = MYLinecolor
+figw, figh = [10,10]
+ix,iy = [1,1]
+iwidth, iheight= [8,8]
 
-
+def TextPos(xylims,scale = [0.1,0.9],islog = False):
+    if (islog):
+        Dy = np.log(xylims[1][1]/xylims[1][0])
+        Dx = xylims[0][1] - xylims[0][0]
+        posx = xylims[0][0]+ scale[0]*Dx;
+        posy = xylims[1][0]+np.exp(scale[1]*(Dy))
+    else:
+        Dy = xylims[1][1] - xylims[1][0]
+        Dx = xylims[0][1] - xylims[0][0]
+        posx = xylims[0][0]+ scale[0]*Dx;
+        posy = xylims[1][0]+ scale[1]*Dy;
+    return posx,posy
 def gifmake(gifname='gif.gif', duration=0.1, beg=0, end=0, prefix='.png'):
     import matplotlib.pyplot as plt
     import imageio
@@ -19,7 +33,7 @@ def gifmake(gifname='gif.gif', duration=0.1, beg=0, end=0, prefix='.png'):
 # ----------Create Figure---------$$$$$$$$$$$$
 
 
-def Create_Figure(figsize=[15,10], x=1, y=1, n=1, polar=False):
+def Create_Figure(figsize=[6,6], x=1, y=1, n=1, polar=False):
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=figsize)
     if (polar):
@@ -30,7 +44,7 @@ def Create_Figure(figsize=[15,10], x=1, y=1, n=1, polar=False):
 
 
 # ------------Figure/axis setting------$$$$$$$$$
-def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklabal=0,ytickrange=0,grid=False,legend=False,xylims = 0,ax_style='d',lw = 2.0):
+def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklabal=0,ytickrange=0,grid=False,legend=False,xylims = 0,ax_style='d',lw = 2.0,showtick = True, ticklength = 10):
     import matplotlib.pyplot as plt
     if (ax_style == 'd'): 
         if (type(xylims) != np.int):
@@ -53,6 +67,11 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
         ax.spines['right'].set_linewidth(lw)
         ax.spines['top'].set_linewidth(lw)
         ax.tick_params(which = 'both',width = lw,colors = 'black')
+        ax.tick_params(direction = 'in')
+        ax.tick_params(length  = ticklength)
+        if (showtick):
+            ax.tick_params(top = True,right = True)
+		
     elif (ax_style == 'p'):
         if (type(xylims) != np.int):
             ax.set_rlim(xylim[1])
@@ -67,7 +86,7 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
         plt.grid(grid);
         ax.spines['polar'].set_linewidth(lw)
         if (legend):
-            plt.legend(fontsize =fs);
+            plt.legend(fontsize =fs,shadow=True);
     else:
         print('Can not understand ax style'+ax_style);
 
@@ -78,6 +97,8 @@ def Colorbar_set(ax,gci,pos='right',size='3%',pad=0.1):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(pos, size=size, pad=pad)
     cbar = plt.colorbar(gci, cax)
+    #cbar.set_ticks() and other operation
+    return cbar
 
 #***********Draw----------------$$$$$$$$$$$$$    
 def draw_histogram2d(ax, x, y, bins=[100, 200], xylim=0, caxis=0, fontsize=20,cmap = 'jet'):
@@ -111,7 +132,7 @@ def draw_histogram2d(ax, x, y, bins=[100, 200], xylim=0, caxis=0, fontsize=20,cm
     
     # colorbar
 
-def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, caxis=0,log10=True):
+def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, caxis=0,log10=True,cmap='jet'):
     ''' ax should be polarization
     T,R is N-array 
     rlim = 0 means default else rlim = [r_min,r_max]
@@ -138,7 +159,7 @@ def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, cax
     else:
         vmin = 0
         vmax = log10H.max()
-    pcmesh = ax.pcolormesh(t, r, log10H, cmap='jet', vmin=vmin, vmax=vmax)
+    pcmesh = ax.pcolormesh(t, r, log10H, cmap=cmap, vmin=vmin, vmax=vmax)
     if (type(rlim) != np.int):
         ax.set_rlim(rlim)
     else:
@@ -159,15 +180,16 @@ def draw_spectrum(ax, data, label, weights=0, logx=0, grid=True,gethd=0):
         axx = 0.5*(ad[1:]+ad[:-1]);
         if logx == 1:
             ad = np.log10(ad)
-        pl = plt.semilogy(axx, hd,
+        pl = plt.semilogy(axx, hd,\
                           color=MYLinecolor[0],label=label, linewidth=2)
     else:
         print('Weights hist')
         hd, ad = np.histogram(data, bins=500, normed=False, weights=weights)
         hd = hd/(ad[1]-ad[0])
+        axx = 0.5*(ad[1:]+ad[:-1]);
         if logx == 1:
             ad = np.log10(ad)
-        pl = plt.semilogy(ax, hd,
+        pl = plt.semilogy(axx, hd,\
                           color=MYLinecolor[0], label=label, linewidth=2)
     return hd,axx
 
@@ -206,7 +228,7 @@ def draw_spectrum_nline(ax,data, label, weights=0, lw=2.0, logx=0, cl=MYLinecolo
                                 color=cl[i], label=label[i], linewidth=lw)
 
 
-def draw_field_snapshot(ax, data, extent, caxis=0):
+def draw_field_snapshot(ax, data, extent, caxis=0,cmap='jet'):
     '''data should be 2-D array (nx,ny) 
     extent should be ([x_min,x_max],[y_min,y_max])
     xylim = ([xmin,xmax],[ymin,ymax])
@@ -224,7 +246,7 @@ def draw_field_snapshot(ax, data, extent, caxis=0):
     else:
         vmin = data.min()
         vmax = data.max()
-    gci = ax.imshow(data, extent=extent, origin='lower', cmap='jet',
+    gci = ax.imshow(data, extent=extent, origin='lower', cmap=cmap,
                     vmax=vmax, vmin=vmin, interpolation='spline36')
     # colorbar
     return ax,gci;
