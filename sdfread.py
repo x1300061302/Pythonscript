@@ -67,7 +67,6 @@ def Get_particle_theta(sdffile,species,dim):
         
 
 def Get_field_variable(sdffile,var):
-	
 	'''def Get_field_variable(sdf.read,var):
 	var = 1 should be Ex,Ey,Ex_averaged ...
 	or Grid_Grid_mid
@@ -87,7 +86,6 @@ def Get_field_variable(sdffile,var):
 		print('*******Can Not Find '+var+' in '+'***********')
 		print(dic.keys())
 		print('******************************************************')
-
 	return data.data
 
 def Get_extent(sdffile):
@@ -135,6 +133,15 @@ def Get_hist_var(var,bins=500,normed=False):
     hd = hd/(ad[1]-ad[0])
     axx = 0.5*(ad[1:]+ad[:-1]);
     return hd,axx
+def Get_hist2d_var(x,y,bins=[100,200],normed = False):
+    h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins)
+    xax = np.linspace(np.min(x), np.max(x), bins[0])
+    yax = np.linspace(np.min(y), np.max(y), bins[1])
+    xx, yy = np.meshgrid(xax, yax)
+    return h_xy,xx,yy
+
+    
+
 
 
 ##test region

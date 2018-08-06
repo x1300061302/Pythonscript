@@ -34,6 +34,13 @@ def gifmake(gifname='gif.gif', duration=0.1, beg=0, end=0, prefix='.png'):
 
 
 def Create_Figure(figsize=[6,6], x=1, y=1, n=1, polar=False):
+    ''' The best figure setting 
+        figsize = [10,10],
+        ax.set_position([0.15,0.15,0.8,0.8]);
+        fs = 30
+        textfontsize = 40;
+        dpi = 300
+    '''
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=figsize)
     if (polar):
@@ -41,10 +48,14 @@ def Create_Figure(figsize=[6,6], x=1, y=1, n=1, polar=False):
     else:
         ax = fig.add_subplot(x, y, n)
     return fig,ax
+    
 
 
 # ------------Figure/axis setting------$$$$$$$$$
-def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklabal=0,ytickrange=0,grid=False,legend=False,xylims = 0,ax_style='d',lw = 2.0,showtick = True, ticklength = 10):
+def Axis_set(ax,axesname=['x','y',''],fs=20.0,grid=False,legend=True,legendpara=0,xylims = 0,ax_style='d',lw = 2.0,showtick = True, ticklength = 10):
+    '''ax is aimed to assign figure
+    
+    '''
     import matplotlib.pyplot as plt
     if (ax_style == 'd'): 
         if (type(xylims) != np.int):
@@ -59,9 +70,16 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
 	#title
         plt.title(axesname[2],fontsize=fs);
         plt.grid(grid);
+
+        #legend setting 
         if (legend):
+            if (type(legendpara) != np.int):
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0, box.width , box.height* 0.8])
+                ax.legend(loc=legendpara.loc, bbox_to_anchor=(0.5, 1.2),ncol=legendpara.ncol,fontsize=fs)
             plt.legend(fontsize =fs);
-	
+        
+        #
         ax.spines['bottom'].set_linewidth(lw)
         ax.spines['left'].set_linewidth(lw)
         ax.spines['right'].set_linewidth(lw)
