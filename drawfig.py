@@ -32,6 +32,22 @@ def gifmake(gifname='gif.gif', duration=0.1, beg=0, end=0, prefix='.png'):
         imageio.mimsave(gifname, images, duration=duration)
 # ----------Create Figure---------$$$$$$$$$$$$
 
+def Create_Figure2(n,m,fw=10,fh=10,sp=2,sw=8,sh=8):
+    '''
+    default fw = 10, fh = 10, sp = 2, sw = sh = 8
+    '''
+    spw = sp/fw;
+    sph = sp/fh;
+    rsw = sw/fw;
+    rsh = sh/fh;
+    ax_list = []
+    fig = plt.figure(figsize= [fw,fh])
+    for i in range(0,n):
+        for j in range(0,m):
+            ax = fig.add_axes([spw*(j+1)+rsw*j,sph*(i+1)+rsh*i,rsw,rsh]) #横排从左往右,#竖排从下往上
+            ax_list.append(ax);       
+    return ax_list
+#     plt.show()
 
 def Create_Figure(figsize=[6,6], x=1, y=1, n=1, polar=False):
     import matplotlib.pyplot as plt
@@ -194,12 +210,16 @@ def draw_spectrum(ax, data, label, weights=0, logx=0, grid=True,gethd=0):
     return hd,axx
 
 
-def draw_spectrum_nline(ax,data, label, weights=0, lw=2.0, logx=0, cl=MYLinecolor, bins=500, normed=False):
+def draw_spectrum_nline(ax,data, label=0, weights=0, lw=2.0, logx=0, cl=MYLinecolor, bins=500, normed=False):
     '''data is 2-D x numl array
     dataname is numl length array ['','',''] 
     figname default = fig
     make sure numl is given'''
     numl = len(data)
+    if (type(label)==np.int):
+        label = []
+        for i in range(0,numl):
+            label.append(str(i))
     if (display == 0):
         try:
             import matplotlib
