@@ -6,6 +6,7 @@ figw, figh = [10,10]
 ix,iy = [1,1]
 iwidth, iheight= [8,8]
 
+
 def TextPos(xylims,scale = [0.1,0.9],islog = False):
     if (islog):
         Dy = np.log(xylims[1][1]/xylims[1][0])
@@ -36,6 +37,7 @@ def Create_Figure2(n,m,fw=10,fh=10,sp=2,sw=8,sh=8):
     '''
     default fw = 10, fh = 10, sp = 2, sw = sh = 8
     '''
+    import matplotlib.pyplot as plt
     spw = sp/fw;
     sph = sp/fh;
     rsw = sw/fw;
@@ -115,6 +117,12 @@ def Colorbar_set(ax,gci,pos='right',size='3%',pad=0.1):
     cbar = plt.colorbar(gci, cax)
     #cbar.set_ticks() and other operation
     return cbar
+
+def Legend_outside(ax,loc,bbox=(1.35,1.0),fs=20):
+    box = ax.get_position();
+    ax.set_position([box.x0,box.y0,box.width,box.height]);
+    ax.legend(loc = loc,bbox_to_anchor=bbox,fontsize=fs)
+    
 
 #***********Draw----------------$$$$$$$$$$$$$    
 def draw_histogram2d(ax, x, y, bins=[100, 200], xylim=0, caxis=0, fontsize=20,cmap = 'jet'):

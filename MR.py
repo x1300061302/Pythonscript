@@ -4,8 +4,9 @@ import scipy.integrate as integrate
 import numpy as np 
 
 def Magnetic_Flux(x,y,Bx,By,region):
-    '''xx,yy,B should be 2-D array
-       region = [xmin,xmax,ymin,ymax]
+    '''B should be 2-D array
+       x,y is the box setup   
+       region = [xmin,xmax,ymin,ymax] of your integral region
     '''
     nx,ny = Bx.shape;
     if (nx != len(x)):

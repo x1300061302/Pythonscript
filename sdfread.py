@@ -57,17 +57,19 @@ def Get_particle_theta(sdffile,species,dim):
         py = Get_particle_variable(sdffile,'Py',species);
         px = Get_particle_variable(sdffile,'Px',species);
         theta = np.arctan2(py,px);
-        return theta
+        #make sure theta is in (0,2*pi)
     elif (dim == 3):
         py = Get_particle_variable(sdffile,'Py',species);
         pz = Get_particle_variable(sdffile,'Pz',species);
         px = Get_particle_variable(sdffile,'Px',species);
         theta = np.arctan2(np.sqrt(py**2+pz**2),px);
-        return theta
+
+    index = (theta < 0);
+    theta[index] = theta[index] + 2*np.pi;
+    return theta
         
 
 def Get_field_variable(sdffile,var):
-	
 	'''def Get_field_variable(sdf.read,var):
 	var = 1 should be Ex,Ey,Ex_averaged ...
 	or Grid_Grid_mid
@@ -87,7 +89,6 @@ def Get_field_variable(sdffile,var):
 		print('*******Can Not Find '+var+' in '+'***********')
 		print(dic.keys())
 		print('******************************************************')
-
 	return data.data
 
 def Get_extent(sdffile):
@@ -135,6 +136,15 @@ def Get_hist_var(var,bins=500,normed=False):
     hd = hd/(ad[1]-ad[0])
     axx = 0.5*(ad[1:]+ad[:-1]);
     return hd,axx
+def Get_hist2d_var(x,y,bins=[100,200],normed = False):
+    h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins)
+    xax = np.linspace(np.min(x), np.max(x), bins[0])
+    yax = np.linspace(np.min(y), np.max(y), bins[1])
+    xx, yy = np.meshgrid(xax, yax)
+    return h_xy,xx,yy
+
+    
+
 
 
 ##test region
