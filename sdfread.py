@@ -57,13 +57,16 @@ def Get_particle_theta(sdffile,species,dim):
         py = Get_particle_variable(sdffile,'Py',species);
         px = Get_particle_variable(sdffile,'Px',species);
         theta = np.arctan2(py,px);
-        return theta
+        #make sure theta is in (0,2*pi)
     elif (dim == 3):
         py = Get_particle_variable(sdffile,'Py',species);
         pz = Get_particle_variable(sdffile,'Pz',species);
         px = Get_particle_variable(sdffile,'Px',species);
         theta = np.arctan2(np.sqrt(py**2+pz**2),px);
-        return theta
+
+    index = (theta < 0);
+    theta[index] = theta[index] + 2*np.pi;
+    return theta
         
 
 def Get_field_variable(sdffile,var):
