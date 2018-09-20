@@ -51,7 +51,7 @@ def Create_Figure2(n,m,fw=10,fh=10,sp=2,sw=8,sh=8):
     return ax_list
 #     plt.show()
 
-def Create_Figure(figsize=[6,6], x=1, y=1, n=1, polar=False):
+def Create_Figure(figsize=[8,8], x=1, y=1, n=1, polar=False):
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=figsize)
     if (polar):
