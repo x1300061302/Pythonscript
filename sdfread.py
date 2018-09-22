@@ -7,6 +7,13 @@ PARTVARNAME_RC = ['Px','Py','Pz','Gamma','Grid']
 SPECIES_RC = 'electron'
 FIELDNAME_RC = ['Ex_averaged','Ey','Bz_averaged','Density_electron','EkBar_electron']
 
+def Get_index(data,region):
+#     print(len(grids[0]))
+    index = np.array(data[0] < region[0][1])*np.array(data[0] >region[0][0])*np.array(data[1]<region[1][1])*np.array(data[1]>region[1][0])
+    if (len(data[0][index]) == 0):
+        print("Warning the length of index = 0,\n Make sure unit of data is right")# error attention
+    return index
+
 def Get_partvar_npy(varname=PARTVARNAME_RC,species=SPECIES_RC):
 	fps = Get_file('p') 
 	for i in range(0,len(fps)):

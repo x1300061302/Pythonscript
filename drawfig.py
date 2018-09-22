@@ -64,6 +64,9 @@ def Create_Figure(figsize=[8,8], x=1, y=1, n=1, polar=False):
 # ------------Figure/axis setting------$$$$$$$$$
 def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklabal=0,ytickrange=0,grid=False,legend=False,xylims = 0,ax_style='d',lw = 2.0,showtick = True, ticklength = 10):
     import matplotlib.pyplot as plt
+    if (axesname == 'sp'):   #Quick set 
+        axesname = ['E/MeV','dN/dE',''];
+        
     if (ax_style == 'd'): 
         if (type(xylims) != np.int):
             plt.xlim(xylims[0]);
@@ -118,25 +121,29 @@ def Colorbar_set(ax,gci,pos='right',size='3%',pad=0.1):
     #cbar.set_ticks() and other operation
     return cbar
 
-def Legend_outside(ax,loc,bbox=(1.35,1.0),fs=20):
+def Legend_outside(ax,loc,ncol = 1,bbox=(1.0,1.0),fs=20):
     box = ax.get_position();
     ax.set_position([box.x0,box.y0,box.width,box.height]);
-    ax.legend(loc = loc,bbox_to_anchor=bbox,fontsize=fs)
+    ax.legend(loc = loc,ncol = ncol, bbox_to_anchor=bbox,fontsize=fs)
     
 
 #***********Draw----------------$$$$$$$$$$$$$    
-def draw_histogram2d(ax, x, y, bins=[100, 200], xylim=0, caxis=0, fontsize=20,cmap = 'jet'):
+def draw_histogram2d(ax, x, y, bins=[300, 300], xylim=0, caxis=0, fontsize=20,cmap = 'jet',log10h =True):
     '''to draw 2-D histogram figure 
        handle = ax
        data = [x,y]
        bins =[nx,ny]
        xylim = [[xlim],[ylim]] means the region to show
        caxis = region of colobar
+       log10h = log10(h)
        '''
     import matplotlib.pyplot as plt
  
     h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins)
-    log10h = np.log10(h_xy)
+    if (log10h):
+        log10h = np.log10(h_xy)
+    else:
+        log10h = h_xy
 
     if (type(caxis) != np.int):
         vmin = caxis[0]
@@ -191,7 +198,7 @@ def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, cax
     cbar = plt.colorbar(pcmesh)
 
 
-def draw_spectrum(ax, data, label, weights=0, logx=0, grid=True,gethd=0):
+def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.0):
     ''' ax should be input
     data is 1-D  array
     label = name of legend 
@@ -205,7 +212,7 @@ def draw_spectrum(ax, data, label, weights=0, logx=0, grid=True,gethd=0):
         if logx == 1:
             ad = np.log10(ad)
         pl = plt.semilogy(axx, hd,\
-                          color=MYLinecolor[0],label=label, linewidth=2)
+                          color=MYLinecolor[0],label=label, linewidth=lw)
     else:
         print('Weights hist')
         hd, ad = np.histogram(data, bins=500, normed=False, weights=weights)
@@ -214,11 +221,11 @@ def draw_spectrum(ax, data, label, weights=0, logx=0, grid=True,gethd=0):
         if logx == 1:
             ad = np.log10(ad)
         pl = plt.semilogy(axx, hd,\
-                          color=MYLinecolor[0], label=label, linewidth=2)
+                          color=MYLinecolor[0], label=label, linewidth=lw)
     return hd,axx
 
 
-def draw_spectrum_nline(ax,data, label=0, weights=0, lw=2.0, logx=0, cl=MYLinecolor, bins=500, normed=False):
+def draw_spectrum_nline(ax,data, label=0, weights=0, lw=3.0, logx=0, cl=MYLinecolor, bins=500, normed=False):
     '''data is 2-D x numl array
     dataname is numl length array ['','',''] 
     figname default = fig
