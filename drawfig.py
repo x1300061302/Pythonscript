@@ -33,7 +33,7 @@ def gifmake(gifname='gif.gif', duration=0.1, beg=0, end=0, prefix='.png'):
         imageio.mimsave(gifname, images, duration=duration)
 # ----------Create Figure---------$$$$$$$$$$$$
 
-def Create_Figure2(n,m,fw=10,fh=10,sp=2,sw=8,sh=8):
+def Create_Figure2(n,m,fw=10,fh=10,sp=2,sw=8,sh=8,ratio=1):
     '''
     default fw = 10, fh = 10, sp = 2, sw = sh = 8
     '''
@@ -43,6 +43,10 @@ def Create_Figure2(n,m,fw=10,fh=10,sp=2,sw=8,sh=8):
     rsw = sw/fw;
     rsh = sh/fh;
     ax_list = []
+    #zoom
+    fw = fw*ratio;
+    fh = fh*ratio;
+    
     fig = plt.figure(figsize= [fw,fh])
     for i in range(0,n):
         for j in range(0,m):
@@ -72,14 +76,14 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
             plt.xlim(xylims[0]);
             plt.ylim(xylims[1]);
         # x-axis
-        plt.xlabel(axesname[0],fontsize=fs); 
-        plt.xticks(fontsize=fs);
+        ax.set_xlabel(axesname[0],fontsize=fs); 
+#         ax.set_xticks(xticklabel); 
         #y-axis
-        plt.ylabel(axesname[1],fontsize=fs);
-        plt.yticks(fontsize=fs);
+        ax.set_ylabel(axesname[1],fontsize=fs);
+#         ax.set_yticks(fontsize=fs);
 	#title
-        plt.title(axesname[2],fontsize=fs);
-        plt.grid(grid);
+        ax.set_title(axesname[2],fontsize=fs);
+        ax.grid(grid);
         if (legend):
             plt.legend(fontsize =fs);
 	
@@ -87,7 +91,7 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
         ax.spines['left'].set_linewidth(lw)
         ax.spines['right'].set_linewidth(lw)
         ax.spines['top'].set_linewidth(lw)
-        ax.tick_params(which = 'both',width = lw,colors = 'black')
+        ax.tick_params(which = 'both',width = lw,colors = 'black',labelsize=fs)
         ax.tick_params(direction = 'in')
         ax.tick_params(length  = ticklength)
         if (showtick):
@@ -97,13 +101,13 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
         if (type(xylims) != np.int):
             ax.set_rlim(xylim[1])
         # x-axis
-        plt.xlabel(axesname[0],fontsize=fs); 
-        plt.xticks(fontsize=fs);
+        ax.set_xlabel(axesname[0],fontsize=fs); 
+        ax.set_xticks(fontsize=fs);
         #y-axis
-        plt.ylabel(axesname[1],fontsize=fs);
-        plt.yticks(fontsize=fs);
+        ax.set_ylabel(axesname[1],fontsize=fs);
+        ax.set_yticks(fontsize=fs);
         #title
-        plt.title(axesname[2],fontsize=fs);
+        ax.set_title(axesname[2],fontsize=fs);
         plt.grid(grid);
         ax.spines['polar'].set_linewidth(lw)
         if (legend):
@@ -198,12 +202,14 @@ def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, cax
     cbar = plt.colorbar(pcmesh)
 
 
-def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.0):
+def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.0,cl=''):
     ''' ax should be input
     data is 1-D  array
     label = name of legend 
     '''
     import matplotlib.pyplot as plt
+    if (cl == ''):
+        cl = MYLinecolor[0];
     if (type(weights) == np.int):
         print('No Weights hist')
         hd, ad = np.histogram(data, bins=500, normed=False)
@@ -212,7 +218,7 @@ def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.
         if logx == 1:
             ad = np.log10(ad)
         pl = plt.semilogy(axx, hd,\
-                          color=MYLinecolor[0],label=label, linewidth=lw)
+                          color=cl,label=label, linewidth=lw)
     else:
         print('Weights hist')
         hd, ad = np.histogram(data, bins=500, normed=False, weights=weights)
@@ -221,7 +227,7 @@ def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.
         if logx == 1:
             ad = np.log10(ad)
         pl = plt.semilogy(axx, hd,\
-                          color=MYLinecolor[0], label=label, linewidth=lw)
+                          color=cl, label=label, linewidth=lw)
     return hd,axx
 
 
