@@ -9,7 +9,10 @@ SPECIES_RC = 'electron'
 FIELDNAME_RC = ['Ex_averaged','Ey','Bz_averaged','Density_electron','EkBar_electron']
 
 
-
+# def generate_key(str_list):
+#     varname = str_list[0]
+#     if (varname == 'Number_Density'):
+#         return 'Derived+''_'.join(str_list)
 
 def Get_EMTensor(a,averaged = True,dim = 2):
     c = 3e8

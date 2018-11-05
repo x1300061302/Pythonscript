@@ -6,6 +6,7 @@ cm = np.float(1e-2);
 fs = np.float(1e-15);
 ns = np.float(1e-9);
 nm = np.float(1e-9);
+km = np.float(1e3);
 
 pi = 3.1415926;
 me = 9.1e-31;
@@ -17,7 +18,8 @@ h_planck = 6.626069e-34;   '''unit J \cdot s'''
 hbar = h_planck/2.0/pi;
 alpha = qe**2.0/hbar/c/4.0/pi/epsilon0; '''\sim 1/137 the fine structure constant'''
 r_e = qe**2.0/4.0/pi/epsilon0/me/c**2;
-E_s = alpha*qe/4.0/pi/epsilon0/r_e**2.0;
+Es = alpha*qe/4.0/pi/epsilon0/r_e**2.0;
+Bs = Es/c
 Mev = 1e6*qe;
 kb = 1.3806488e-23
 
@@ -37,6 +39,7 @@ def Get_nc(omega):
 #linestyle 
 MYLinecolor = ['r','g','b','c','y','k']
 MYLinestyle = ['o-','1-','v-','1-','s-','p-']
+MYColormap =  ['jet','viridis','RdBu','bwr','seismic']
 import sdf
 import sdfread as sr
 import drawfig as df

@@ -73,8 +73,8 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
         
     if (ax_style == 'd'): 
         if (type(xylims) != np.int):
-            plt.xlim(xylims[0]);
-            plt.ylim(xylims[1]);
+            ax.set_xlim(xylims[0]);
+            ax.set_ylim(xylims[1]);
         # x-axis
         ax.set_xlabel(axesname[0],fontsize=fs); 
 #         ax.set_xticks(xticklabel); 
@@ -231,9 +231,15 @@ def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.
     return hd,axx
 
 
-def draw_spectrum_nline(ax,data, label=0, weights=0, lw=3.0, logx=0, cl=MYLinecolor, bins=500, normed=False):
+def draw_spectrum_nline(ax,data, label=0, weights=0, lw=3.0, logx=0, cl=MYLinecolor,ls = '-', bins=500, normed=False):
     '''data is 2-D x numl array
     dataname is numl length array ['','',''] 
+    label is the legend name
+    weights = 0 is default meaning no weight
+    lw is the width of the line
+    logx is the trigger deciding if the x-axis is logx 
+    cl is the color of the line 
+    and ls is the linestyle of the line
     figname default = fig
     make sure numl is given'''
     numl = len(data)
@@ -256,6 +262,7 @@ def draw_spectrum_nline(ax,data, label=0, weights=0, lw=3.0, logx=0, cl=MYLineco
                 ad = np.log10(ad)
             plsy = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
                                 color=cl[i],
+                                linestyle = ls,
                                 label=label[i],
                                 linewidth=lw)
     else:
@@ -266,7 +273,9 @@ def draw_spectrum_nline(ax,data, label=0, weights=0, lw=3.0, logx=0, cl=MYLineco
             if logx == 1:
                 ad = np.log10(ad)
             plsy = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
-                                color=cl[i], label=label[i], linewidth=lw)
+                                color=cl[i], 
+                                linestyle = ls,
+                                label=label[i], linewidth=lw)
 
 
 def draw_field_snapshot(ax, data, extent, caxis=0,cmap='jet'):
