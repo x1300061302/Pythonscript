@@ -133,6 +133,8 @@ def Legend_outside(ax,loc,ncol = 1,bbox=(1.0,1.0),fs=20):
 
 #***********Draw----------------$$$$$$$$$$$$$    
 def draw_histogram2d(ax, x, y, bins=[300, 300], xylim=0, caxis=0, fontsize=20,cmap = 'jet',log10h =True):
+    if (ax == 0):
+        fig,ax = Create_Figure();
     '''to draw 2-D histogram figure 
        handle = ax
        data = [x,y]
@@ -168,6 +170,8 @@ def draw_histogram2d(ax, x, y, bins=[300, 300], xylim=0, caxis=0, fontsize=20,cm
     # colorbar
 
 def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, caxis=0,log10=True,cmap='jet'):
+    if (ax == 0):
+        fig,ax = Create_Figure(polar=True);
     ''' ax should be polarization
     T,R is N-array 
     rlim = 0 means default else rlim = [r_min,r_max]
@@ -200,13 +204,23 @@ def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, cax
     else:
         ax.set_rlim(np.min(R), np.max(R))
     cbar = plt.colorbar(pcmesh)
+    return ax,pcmesh
 
-
-def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.0,cl=''):
-    ''' ax should be input
-    data is 1-D  array
-    label = name of legend 
+def draw_spectrum(data, ax = 0, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.0,cl='',factor=1.0):
+    ''' Input: data 
+               ax = 0 default figure and axis;
+               label = '' 
+               weights = 0 
+               logx = 0 mean the logx of axis
+               grid =True
+               lw means the linewidth of the curve
+               cl means the color of the line 
+               factor means the factor * hd 
+        Output:
+           return ax  
     '''
+    if (ax == 0):
+        fig,ax = Create_Figure();
     import matplotlib.pyplot as plt
     if (cl == ''):
         cl = MYLinecolor[0];
@@ -217,7 +231,7 @@ def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.
         axx = 0.5*(ad[1:]+ad[:-1]);
         if logx == 1:
             ad = np.log10(ad)
-        pl = plt.semilogy(axx, hd,\
+        pl = plt.semilogy(axx, factor*hd,\
                           color=cl,label=label, linewidth=lw)
     else:
         print('Weights hist')
@@ -226,22 +240,24 @@ def draw_spectrum(ax, data, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.
         axx = 0.5*(ad[1:]+ad[:-1]);
         if logx == 1:
             ad = np.log10(ad)
-        pl = plt.semilogy(axx, hd,\
+        pl = plt.semilogy(axx, factor*hd,\
                           color=cl, label=label, linewidth=lw)
-    return hd,axx
+    return ax
 
 
-def draw_spectrum_nline(ax,data, label=0, weights=0, lw=3.0, logx=0, cl=MYLinecolor,ls = '-', bins=500, normed=False):
-    '''data is 2-D x numl array
-    dataname is numl length array ['','',''] 
-    label is the legend name
-    weights = 0 is default meaning no weight
-    lw is the width of the line
-    logx is the trigger deciding if the x-axis is logx 
-    cl is the color of the line 
-    and ls is the linestyle of the line
-    figname default = fig
-    make sure numl is given'''
+def draw_spectrum_nline(data, ax = 0, label=0, weights=0, lw=3.0, logx=0, cl=MYLinecolor,ls = '-', bins=500, normed=False):
+    ''' Input:
+            data is l x N array
+            label is the legend name
+            weights = 0 is default meaning no weight
+            lw is the width of the line
+            logx is the trigger deciding if the x-axis is logx 
+            cl is the color of the line 
+            and ls is the linestyle of the line
+            figname default = fig
+            make sure numl is given'''
+    if (ax == 0):
+        fig,ax = Create_Figure();
     numl = len(data)
     if (type(label)==np.int):
         label = []
@@ -276,15 +292,18 @@ def draw_spectrum_nline(ax,data, label=0, weights=0, lw=3.0, logx=0, cl=MYLineco
                                 color=cl[i], 
                                 linestyle = ls,
                                 label=label[i], linewidth=lw)
+    return ax
 
 
-def draw_field_snapshot(ax, data, extent, caxis=0,cmap='jet'):
+def draw_field_snapshot(data, extent, ax = 0, caxis=0,cmap='jet'):
     '''data should be 2-D array (nx,ny) 
     extent should be ([x_min,x_max],[y_min,y_max])
     xylim = ([xmin,xmax],[ymin,ymax])
     label = ['xlabel/Unit','ylabel/Unit','title'] 
     Display dicide whether to show
     figname default = title'''
+    if (ax == 0):
+        fig,ax = Create_Figure();
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -302,19 +321,25 @@ def draw_field_snapshot(ax, data, extent, caxis=0,cmap='jet'):
     return ax,gci;
 
 
-def draw_line(ax, xx, data, label, lw=2.0):
+def plot(xx, data, ax = 0,label='', lw=2.0):
+    if (ax == 0):
+        fig,ax = Create_Figure();
     ax.plot(xx, data, 'r-', label=label, linewidth=lw)
+    return ax
 
 
-def draw_nline(xx, data, label, cl=MYLinecolor, lw=2.0):
+def draw_nline(ax, xx, data, label, cl=MYLinecolor, lw=2.0):
     ''' xx = nlxlength np.array datatype 
     '''
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     from mpl_toolkits.mplot3d import Axes3D
+    if (ax == 0):
+        fig,ax = Create_Figure();
     nl = len(data)
     for i in range(0, nl):
         ax.plot(xx, data[i][:], cl[i], label=label[i], linewidth=lw)
+    return ax
 
 
 #**************main test

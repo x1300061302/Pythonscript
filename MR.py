@@ -4,29 +4,24 @@ import scipy.integrate as integrate
 import numpy as np 
 from const import *
 
+
 class Simu_info():
     '''
     This Class is aimed to get the information of the Simulation.
     And normalized parameter in Simulations.
     '''
-    def __init__(self,deckfile,name = ''):
+    def __init__(self,deckfile='const.status',Nx=0,Ny=0,Nz=0,name = ''):
         self.name = name;
-        self.T0 = 0;
-        self.di = 0
-        self.ne = 0
-        self.omega_pe = 0
-        self.omega_ce = 0
-        self.B0 = 0;
-        self.E0 = 0;
-        self.J0 = 0;
-        self.nx = 0;
-        self.ny = 0;
-        self.dt = 20;
-        self.drift_V = 0;
+        self.Const={};
+        self.axis={};
+        self.map={}
         print('Begin Read Deck')
         self.deck_read(deck_name = deckfile)
-        
-        #self.box_info('0000.sdf')]
+        self.Nx = Nx;
+        self.Ny = Ny;
+        self.axis['x'] = np.linspace(self.Const['xmin']/self.Const['di'],self.Const['xmax']/self.Const['di'],self.Nx);
+        self.axis['y'] = np.linspace(self.Const['ymin']/self.Const['di'],self.Const['ymax']/self.Const['di'],self.Ny);
+        self.map['xx'],self.map['yy'] = np.meshgrid(self.axis['x'],self.axis['y']);  
     def deck_read(self,deck_name):
         f = open(deck_name,'r')
         print('Open file',deck_name);
@@ -34,49 +29,18 @@ class Simu_info():
         for line in lines:
             exp = line.split()
 #             print(exp)
-            if (exp[0] == 'T0'):
-                self.T0 = float(exp[2]); 
-            if (exp[0] == 'di'):
-                self.di = float(exp[2]);
-            if (exp[0] == 'ne'):
-                self.ne = float(exp[2]);
-            if (exp[0] == 'omega_pe'):
-                self.omega_pe = float(exp[2]);
-            if (exp[0] == 'B0'):
-                self.B0 = float(exp[2]);
-            if (exp[0] == 'omega_ce'):
-                self.omega_ce = float(exp[2]);
-            if (exp[0] == 'nx'):
-                self.nx = float(exp[2]);
-            if (exp[0] == 'ny'):
-                self.ny = float(exp[2]);
-            if (exp[0] == 'temp'):
-                self.temp = float(exp[2]);
-            if (exp[0] == 'drift_V'):
-                self.drift_V = float(exp[2]);
-            if (exp[0] == 'kd'):
-                self.kd = float(exp[2]);
+            self.Const[exp[0]] = float(exp[2])
             ##
-            self.E0 = self.B0*c
-            self.J0 = self.drift_V*self.ne*qe
+        self.Const['E0'] = self.Const['B0']*c
+        self.Const['J0'] = self.Const['drift_V']*self.Const['ne']*qe
                 
 #             print(exp[0])
         f.close()
         print('Close File')
-    def set_dT(self,dt):
-        self.dt = dt;
-    def box_info(self,sdfname):      
-        a = sdf.read(sdfname);
-        extent = sr.Get_extent(a)
-        self.xmin,self.xmax,self.ymin,self.ymax = np.array(extent)/self.di
-#         print(xmin,xmax,ymin,ymax)
-        if (self.nx == 0):
-            self.nx = len(a.Grid_Grid_mid.data[0])
-            self.ny = len(a.Grid_Grid_mid.data[1])
-        self.x = np.linspace(self.xmin,self.xmax,self.nx)
-        self.y = np.linspace(self.ymin,self.ymax,self.ny)
-        self.xx,self.yy = np.meshgrid(self.x,self.y)
-
+    def get_extent(self,sdffile):
+        a = sdf.read(sdffile);
+        extent = sr.Get_extent(a);
+        return np.array(extent)
 
 class quick_draw(object):
     '''
@@ -87,22 +51,28 @@ class quick_draw(object):
     like this
     '''
     def __init__(self, sdffile,name = '',deckfile='const.status'):
+        a = sdf.read(sdffile)
         if name == '':
-            self.name = str(sdffile.Header['time']);
+            self.name = str(a.Header['time']);
         else:
             self.name = name;
-        self.a = sdffile;
-        self.S = Simu_info(deckfile);  
-        self.extent = np.array(sr.Get_extent(self.a))/self.S.di;
+        self.a = a;
+        self.S = Simu_info(deckfile,\
+                           Nx=len(a.Grid_Grid.data[0])-1,\
+                           Ny=len(a.Grid_Grid.data[1])-1,\
+                          );  
+        self.extent = np.array(sr.Get_extent(self.a))/self.S.Const['di'];
         self.para={
             'norm':1,
-            'caxis':[0,1],
+            'caxis':[1,0],
             'cmap':'jet',
             'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
             'save':False,
-            'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+self.name]
+            'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+str(a.Header['time'])],
+            'density': 1,
+            'linewidth': 2.0
         }
-
+        self.default_para = self.para;
     def get_S(self):
         return self.S;
 #    @staticmethod
@@ -110,49 +80,89 @@ class quick_draw(object):
     def get_para(self):
         return self.para;
     def set_para(self,para):
-#         print(para)
-        for key in para.keys():
-            self.para[key] = para[key];
-#             print(key)
-#             print(para[key]);
+        self.para.update(para)
 #         return self.para;
-    def draw(self,ax,key,para):
+    def draw_MagneticLine(self,ax=0,para={}):
+        self.para.update(self.default_para)
+        if (ax == 0):
+            fig,ax = df.Create_Figure();
+        self.set_para(para);
+        Bx = self.a.Magnetic_Field_Bx_averaged.data;
+        By = self.a.Magnetic_Field_By_averaged.data;
+        ax.streamplot(self.S.axis['x'],self.S.axis['y'],Bx.T,By.T,\
+                      density = self.para['density'],\
+                      linewidth = self.para['linewidth'],\
+                      cmap = self.para['cmap'])
+    def draw_spectrum(self,ax,key, para={}):
+        self.para.update(self.default_para)
+        if (ax == 0):
+            fig,ax = df.Create_Figure();
+        var = self.a.__dict__[key]; 
+        speciesname = var.name.split('/')[3];# species
+        print(np.min(var.data),np.max(var.data))
+        self.set_para(para={'axesname':['E/Mev','dN/dE',speciesname+str(self.a.Header['time'])],\
+                            'xylims':0});
+        df.draw_spectrum(ax=ax,data = var.data);
+        df.Axis_set(ax,\
+                        axesname=self.para['axesname'],\
+                        xylims = self.para['xylims'],\
+                       )
+        
+    def draw(self,ax,key,para={}):
+        '''
+        Input: 
+            ax is the axis of the figure 
+            key is the key value of sdf file, like key = 'Derived_Number_Density_electron'
+            para is the dictionary paramater setting which includes:
+                'norm':1,
+                'caxis':[0,1],
+                'cmap':'jet',
+                'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+                'save':False,
+                'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+self.name]
+        Output:
+            Return Fig,ax 
+            Figure
+        '''
+                
         #setting 
         #judge whether the key exist in a. and get data.
         #judge the parameter setting.
         # if default  
         # or not default set_para(para)
-
-
-
+        self.para.update(self.default_para)
         if (type(para) != np.int):
             self.set_para(para);
-        if (key == 'Derived_Number_Density_electron'):
-            para = {
-                    'norm':self.S.ne,
-                    'caxis':[0,3],
-                    'cmap':'jet',
-                    'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
-                    'save':False,
-                    'axesname': [r'$x/d_i$',r'$y/d_i$',r'$N_e$'+self.name]
-                }
-#             key = 
-            
-        if (key == 'Derived_EkBar_electron'):           
-            para = {
-                    'norm':self.S.ne,
-                    'caxis':[0,3],
-                    'cmap':'jet',
-                    'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
-                    'save':False,
-                    'axesname': [r'$x/d_i$',r'$y/d_i$',r'$N_e$'+self.name]
-                }
-            
+#        if (key == 'Derived_Number_Density_electron'):
+#            para = {
+#                    'norm':self.S.Const['ne'],
+#                    'caxis':[0,3],
+#                    'cmap':'jet',
+#                    'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+#                    'save':False,
+#                    'axesname': [r'$x/d_i$',r'$y/d_i$',r'$N_e$'+self.name]
+#                }
+##             key = 
+#            
+#        if (key == 'Derived_EkBar_electron'):           
+#            para = {
+#                    'norm':self.S.Const['ne'],
+#                    'caxis':[0,3],
+#                    'cmap':'jet',
+#                    'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+#                    'save':False,
+#                    'axesname': [r'$x/d_i$',r'$y/d_i$',r'$N_e$'+self.name]
+#                }
+#            
 #         self.set_para(para)
         if (type(ax) == np.int):
             fig,ax = df.Create_Figure()
             
         var = self.a.__dict__[key].data;  
+        vmin = np.min(var);
+        vmax = np.max(var);
+        if (self.para):
+            self.para['caxis'] = [vmin/self.para['norm'],vmax/self.para['norm']]; # autosetting vmin - vmax;
 #         di = self.S.di;
         ax,gci = df.draw_field_snapshot(ax=ax,\
                                         data=var.T/self.para['norm'],\
@@ -161,16 +171,16 @@ class quick_draw(object):
                                         caxis=self.para['caxis']
                                        )
     #                                             )
-#         axesname[2] = axesname[2] + self.name;
         df.Axis_set(ax,\
                         axesname=self.para['axesname'],\
                         xylims = self.para['xylims'],\
                        )
         acs = df.Colorbar_set(ax,gci)
+        #autoseting colorcaxis:
         if (self.para['save']):
             plt.savefig(self.para['axesname'][2]+'.png',dpi = 200);
-        else:
-            plt.show()
+            
+        return fig,ax 
 
 
 class MR_Calc(): 

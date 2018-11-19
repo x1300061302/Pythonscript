@@ -191,10 +191,29 @@ def Get_laser_en(sdffile):
     data = sdffile.__dict__['Absorption_Total_Laser_Energy_Injected__J_'];
     data = data.data;
     return data;
+def Get_time(prefix=''):
+    ffs = Get_file(prefix = prefix);
+    time = []
+    for i in range(0,len(ffs)):
+        a = sdf.read(ffs[i]);
+        time.append(a.Header['time']);
+    return time 
+
+def Get_energy(prefix=''):
+    ffs = Get_file(prefix = prefix);
+    TFE = []
+    TPE = []
+    for i in range(0,len(ffs)):
+        a = sdf.read(ffs[i]);
+        TFE.append(a.Total_Field_Energy_in_Simulation__J_.data)
+        TPE.append(a.Total_Particle_Energy_in_Simulation__J_.data)
+    return TFE,TPE
 
 ###############--------------------############some operation:
-def Get_hist_var(var,bins=500,normed=False):
-    hd, ad = np.histogram(var, bins=bins, normed=normed)
+def Get_hist_var(var,weights = 0, bins=500,normed=False):
+    if (type(weights) == int):
+        weights = np.ones(var.shape)+weights;
+    hd, ad = np.histogram(var, weights = weights,bins=bins, normed=normed)
     hd = hd/(ad[1]-ad[0])
     axx = 0.5*(ad[1:]+ad[:-1]);
     return hd,axx
