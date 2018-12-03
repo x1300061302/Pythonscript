@@ -174,6 +174,77 @@ def Get_extent(sdffile):
 		myextent = extent[index]
 
 	return myextent
+def Get_max_var(key,prefix = '',dirc = '', ffs = []):
+    ''' Input:
+            key : a.__dict__key or a.key
+            prefix and dirc is the file list information like xxx/f0010.sdf prefix = 'f',dirc = 'xxx'
+        Output 
+            return the maximum value of key in the list of ffs
+            and the time at each time.
+    '''
+    if (len(ffs) == 0):
+        ffs = Get_file(prefix = prefix,dirc = dirc);
+    key = key.split('.')[1]
+    max_var = []
+    time = []
+    for i in range(0,len(ffs)):
+        a = sdf.read(dirc+ffs[i])
+        max_var.append(np.max(a.__dict__[key].data));
+        time.append(a.Header['time'])
+    return max_var,time
+
+def Get_Compare_var(sdflist, key,return_time = False):
+    key = key.split('.')[1]
+    vars = []
+    time = []
+    for sdffile in sdflist:
+        a = sdf.read(sdffile); 
+        try:
+            time.append(a.Header['time'])
+            vars.append(a.__dict__[key].data)
+        except:
+            print('Wrong Can not Read')
+    if (return_time): 
+        return vars,time
+    else:
+        return vars
+    
+
+def Get_field_energy(sdffile,key='all'):
+    '''
+    just for MR case;
+    '''
+    #Const 
+    c = 3e8
+    epsilon0 = 8.854e-12
+    a = sdf.read(sdffile);
+    dx = a.Grid_Grid.data[0][1]-a.Grid_Grid.data[0][0]
+    dy = a.Grid_Grid.data[1][1]-a.Grid_Grid.data[1][0]
+    if (key == 'all'):
+        ez = a.Electric_Field_Ez.data;
+        bx = a.Magnetic_Field_Bx.data;
+        by = a.Magnetic_Field_By.data;
+        bz = a.Magnetic_Field_Bz.data;
+    else:
+        ez = a.Electric_Field_Ez_averaged.data;
+        bx = a.Magnetic_Field_Bx_averaged.data;
+        by = a.Magnetic_Field_By_averaged.data;
+        bz = a.Magnetic_Field_Bz_averaged.data;
+    nx,ny = bx.shape
+    s ={'bx':0,'by':0,'bz':0,'ex':0,'ey':0,'ez':0}
+    for ix in range(0,nx):
+        for iy in range(0,ny):
+            s['bx'] = s['bx'] + c**2 * bx[ix,iy]**2
+            s['by'] = s['by'] + c**2 * by[ix,iy]**2
+            s['bz'] = s['bz'] + c**2 * bz[ix,iy]**2
+#             sb = sb + sbx + sby + sbz;
+            s['ez'] = s['ez'] + ez[ix,iy]**2
+    for key in s.keys():
+        s[key] = s[key] * 0.5*epsilon0*dx*dy
+#     sb = 0.5*epsilon0*sb*dx*dy
+#     se = 0.5*epsilon0*se*dx*dy
+    return s
+#     grids = a.
 
 def Get_file(prefix,dirc=''):
 	''' prefix = 'p' or 'f' 
@@ -197,17 +268,36 @@ def Get_time(prefix=''):
     for i in range(0,len(ffs)):
         a = sdf.read(ffs[i]);
         time.append(a.Header['time']);
-    return time 
-
-def Get_energy(prefix=''):
-    ffs = Get_file(prefix = prefix);
+    return np.array(time) 
+def Get_curlB(sdffile):
+    a = sdf.read(sdffile)
+    try:
+        Bx = a.Magnetic_Field_Bx;
+        By = a.Magnetic_Field_By;
+        dx = Bx.grid.data[0][1] - Bx.grid.data[0][0];
+        dy = Bx.grid.data[1][1] - Bx.grid.data[1][0]
+    except:
+        print('Wrong, can not read Magnetic Field')
+    curlB = curl(Ax = Bx,Ay = By,dx = dx,dy = dy,order = 2);
+    return curlB
+def curl(Ax,Ay,dx = 1.0,dy = 1.0,Az=0,order=2):
+    nx,ny = Ax.shape
+    curlAz = np.zeros(Ax.shape)
+    cx = 1.0/(dx) 
+    cy = 1.0/(dy) 
+    for ix in range(1,nx):
+        for iy in range(1,ny):
+            curlAz[ix,iy] = cx*(Ay[ix  , iy] - Ay[ix-1, iy])-cy*(Ax[ix  , iy]   - Ax[ix  , iy-1])
+    return curlAz
+def Get_energy(prefix='',dirc = ''):
+    ffs = Get_file(prefix = prefix,dirc = dirc);
     TFE = []
     TPE = []
     for i in range(0,len(ffs)):
-        a = sdf.read(ffs[i]);
+        a = sdf.read(dirc + ffs[i]);
         TFE.append(a.Total_Field_Energy_in_Simulation__J_.data)
         TPE.append(a.Total_Particle_Energy_in_Simulation__J_.data)
-    return TFE,TPE
+    return np.array(TFE),np.array(TPE)
 
 ###############--------------------############some operation:
 def Get_hist_var(var,weights = 0, bins=500,normed=False):

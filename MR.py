@@ -64,7 +64,7 @@ class quick_draw(object):
         self.extent = np.array(sr.Get_extent(self.a))/self.S.Const['di'];
         self.para={
             'norm':1,
-            'caxis':[1,0],
+            'caxis':0,
             'cmap':'jet',
             'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
             'save':False,
@@ -93,7 +93,8 @@ class quick_draw(object):
                       density = self.para['density'],\
                       linewidth = self.para['linewidth'],\
                       cmap = self.para['cmap'])
-    def draw_spectrum(self,ax,key, para={}):
+    def draw_spectrum(self,ax,key, para={}, weight = 0):
+        key = key.split('.')[1]
         self.para.update(self.default_para)
         if (ax == 0):
             fig,ax = df.Create_Figure();
@@ -102,7 +103,11 @@ class quick_draw(object):
         print(np.min(var.data),np.max(var.data))
         self.set_para(para={'axesname':['E/Mev','dN/dE',speciesname+str(self.a.Header['time'])],\
                             'xylims':0});
-        df.draw_spectrum(ax=ax,data = var.data);
+        if (type(weight) == np.int):
+            df.draw_spectrum(ax=ax,data = var.data);
+#         else:
+#             keyw =  var.name.split('/');
+#             weight = self.a.dict__[key]
         df.Axis_set(ax,\
                         axesname=self.para['axesname'],\
                         xylims = self.para['xylims'],\
@@ -115,7 +120,7 @@ class quick_draw(object):
             key is the key value of sdf file, like key = 'Derived_Number_Density_electron'
             para is the dictionary paramater setting which includes:
                 'norm':1,
-                'caxis':[0,1],
+                'caxis':0,
                 'cmap':'jet',
                 'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
                 'save':False,
@@ -130,9 +135,6 @@ class quick_draw(object):
         #judge the parameter setting.
         # if default  
         # or not default set_para(para)
-        self.para.update(self.default_para)
-        if (type(para) != np.int):
-            self.set_para(para);
 #        if (key == 'Derived_Number_Density_electron'):
 #            para = {
 #                    'norm':self.S.Const['ne'],
@@ -155,32 +157,36 @@ class quick_draw(object):
 #                }
 #            
 #         self.set_para(para)
+        key = key.split('.')[1]
         if (type(ax) == np.int):
             fig,ax = df.Create_Figure()
             
         var = self.a.__dict__[key].data;  
         vmin = np.min(var);
         vmax = np.max(var);
-        if (self.para):
-            self.para['caxis'] = [vmin/self.para['norm'],vmax/self.para['norm']]; # autosetting vmin - vmax;
+        #self.para.update(self.default_para)
+        self.para['caxis'] = 0; # autosetting vmin - vmax;
+        
+        if (type(para) != np.int):
+            self.set_para(para);
 #         di = self.S.di;
-        ax,gci = df.draw_field_snapshot(ax=ax,\
+        print(self.para['caxis']);
+        ax,gci,cb = df.draw_field_snapshot(ax=ax,\
                                         data=var.T/self.para['norm'],\
                                         extent=self.extent,\
                                         cmap=self.para['cmap'],\
-                                        caxis=self.para['caxis']
+                                        caxis=self.para['caxis'],\
                                        )
     #                                             )
         df.Axis_set(ax,\
                         axesname=self.para['axesname'],\
                         xylims = self.para['xylims'],\
                        )
-        acs = df.Colorbar_set(ax,gci)
         #autoseting colorcaxis:
         if (self.para['save']):
             plt.savefig(self.para['axesname'][2]+'.png',dpi = 200);
-            
-        return fig,ax 
+
+        return ax 
 
 
 class MR_Calc(): 

@@ -206,12 +206,11 @@ def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, cax
     cbar = plt.colorbar(pcmesh)
     return ax,pcmesh
 
-def draw_spectrum(data, ax = 0, label='', weights=0, logx=0, grid=True,gethd=0,lw=3.0,cl='',factor=1.0):
+def draw_spectrum(data, ax = 0, label='', weights=0, grid=True,gethd=0,lw=3.0,cl='',factor=1.0):
     ''' Input: data 
                ax = 0 default figure and axis;
                label = '' 
                weights = 0 
-               logx = 0 mean the logx of axis
                grid =True
                lw means the linewidth of the curve
                cl means the color of the line 
@@ -229,8 +228,6 @@ def draw_spectrum(data, ax = 0, label='', weights=0, logx=0, grid=True,gethd=0,l
         hd, ad = np.histogram(data, bins=500, normed=False)
         hd = hd/(ad[1]-ad[0])
         axx = 0.5*(ad[1:]+ad[:-1]);
-        if logx == 1:
-            ad = np.log10(ad)
         pl = plt.semilogy(axx, factor*hd,\
                           color=cl,label=label, linewidth=lw)
     else:
@@ -238,20 +235,17 @@ def draw_spectrum(data, ax = 0, label='', weights=0, logx=0, grid=True,gethd=0,l
         hd, ad = np.histogram(data, bins=500, normed=False, weights=weights)
         hd = hd/(ad[1]-ad[0])
         axx = 0.5*(ad[1:]+ad[:-1]);
-        if logx == 1:
-            ad = np.log10(ad)
         pl = plt.semilogy(axx, factor*hd,\
                           color=cl, label=label, linewidth=lw)
     return ax
 
 
-def draw_spectrum_nline(data, ax = 0, label=0, weights=0, lw=3.0, logx=0, cl=MYLinecolor,ls = '-', bins=500, normed=False):
+def draw_spectrum_nline(data, ax = 0, label=0, weights=0, lw=3.0, cl=MYLinecolor,ls = '-', bins=500, normed=False):
     ''' Input:
             data is l x N array
             label is the legend name
             weights = 0 is default meaning no weight
             lw is the width of the line
-            logx is the trigger deciding if the x-axis is logx 
             cl is the color of the line 
             and ls is the linestyle of the line
             figname default = fig
@@ -274,8 +268,6 @@ def draw_spectrum_nline(data, ax = 0, label=0, weights=0, lw=3.0, logx=0, cl=MYL
         print('No Weights hist')
         for i in range(0, numl):
             hd, ad = np.histogram(data[i][:], bins=500, normed=False)
-            if logx == 1:
-                ad = np.log10(ad)
             plsy = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
                                 color=cl[i],
                                 linestyle = ls,
@@ -286,8 +278,6 @@ def draw_spectrum_nline(data, ax = 0, label=0, weights=0, lw=3.0, logx=0, cl=MYL
         for i in range(0, numl):
             hd, ad = np.histogram(
                 data[i][:], bins=bins, normed=normed, weights=weights[i][:])
-            if logx == 1:
-                ad = np.log10(ad)
             plsy = plt.semilogy(.5*(ad[1:]+ad[:-1]), hd,
                                 color=cl[i], 
                                 linestyle = ls,
@@ -295,7 +285,7 @@ def draw_spectrum_nline(data, ax = 0, label=0, weights=0, lw=3.0, logx=0, cl=MYL
     return ax
 
 
-def draw_field_snapshot(data, extent, ax = 0, caxis=0,cmap='jet'):
+def draw_field_snapshot(data, extent, ax = 0, caxis=0,cmap='jet',bar_set=True):
     '''data should be 2-D array (nx,ny) 
     extent should be ([x_min,x_max],[y_min,y_max])
     xylim = ([xmin,xmax],[ymin,ymax])
@@ -317,6 +307,10 @@ def draw_field_snapshot(data, extent, ax = 0, caxis=0,cmap='jet'):
         vmax = data.max()
     gci = ax.imshow(data, extent=extent, origin='lower', cmap=cmap,
                     vmax=vmax, vmin=vmin, interpolation='spline36')
+    if (bar_set):
+        cb = Colorbar_set(ax,gci);
+        return ax,gci,cb;
+    
     # colorbar
     return ax,gci;
 
