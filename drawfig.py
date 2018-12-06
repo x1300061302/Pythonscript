@@ -66,6 +66,21 @@ def Create_Figure(figsize=[8,8], x=1, y=1, n=1, polar=False):
 
 
 # ------------Figure/axis setting------$$$$$$$$$
+def Line_set(ax,linewidth = 3.0,linestyle = '-',label =''):
+    '''Input: ax: is the axis you draw line
+              linewidth:single value of a list 
+              linestyle:
+              label:
+    '''
+    lines = ax.get_lines()
+    for i in range(0,len(lines)):
+        line = lines[i]
+        line.set_linewidth(linewidth)
+        line.set_linestyle(linestyle)
+#         line.set_label(label[i])
+    
+    
+    
 def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklabal=0,ytickrange=0,grid=False,legend=False,xylims = 0,ax_style='d',lw = 2.0,showtick = True, ticklength = 10):
     import matplotlib.pyplot as plt
     if (axesname == 'sp'):   #Quick set 
@@ -169,7 +184,7 @@ def draw_histogram2d(ax, x, y, bins=[300, 300], xylim=0, caxis=0, fontsize=20,cm
     
     # colorbar
 
-def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, caxis=0,log10=True,cmap='jet'):
+def draw_angle_distribution3d(ax, T, R, weights = 0,tlim=0, rlim=0, binT=360, binR=1000, caxis=0,log10=True,cmap='jet'):
     if (ax == 0):
         fig,ax = Create_Figure(polar=True);
     ''' ax should be polarization
@@ -178,8 +193,10 @@ def draw_angle_distribution3d(ax, T, R, tlim=0, rlim=0, binT=360, binR=1000, cax
     draw angle distribution histogram'''
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
+    if (type(weights) == np.int):
+        weights = np.ones(T.shape)
     #histogram
-    H, Tedge, Redge = np.histogram2d(T, R, bins=[binT, binR])
+    H, Tedge, Redge = np.histogram2d(T, R, weights=weights, bins=[binT, binR])
     if (log10):
         log10H = np.log10(H)
     else:
@@ -334,6 +351,158 @@ def draw_nline(ax, xx, data, label, cl=MYLinecolor, lw=2.0):
     for i in range(0, nl):
         ax.plot(xx, data[i][:], cl[i], label=label[i], linewidth=lw)
     return ax
+
+
+##########Quick Draw Part:
+class quick_draw(object):
+    '''
+    I want to achieve quick_draw figure in this class as 
+    Q = quick_draw()
+    Q.draw_Ekbar()
+    Q.draw_photon_Ekbar()
+    like this
+    '''
+    def __init__(self, sdffile,name = '',deckfile='const.status'):
+        a = sdf.read(sdffile)
+        if name == '':
+            self.name = str(a.Header['time']);
+        else:
+            self.name = name;
+        self.a = a;
+        self.s = sr.simu_info(deckfile,\
+                           Nx=len(a.Grid_Grid.data[0])-1,\
+                           Ny=len(a.Grid_Grid.data[1])-1,\
+                          );  
+        self.extent = np.array(sr.Get_extent(self.a))/self.s.const['di'];
+        self.para={
+            'norm':1,
+            'caxis':0,
+            'cmap':'jet',
+            'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+            'save':False,
+            'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+str(a.Header['time'])],
+            'density': 1,
+            'linewidth': 2.0
+        }
+        self.default_para = self.para;
+    def get_s(self):
+        return self.s;
+#    @staticmethod
+#     def get_norm(self,key=''):
+    def get_para(self):
+        return self.para;
+    def set_para(self,para):
+        self.para.update(para)
+#         return self.para;
+    def draw_MagneticLine(self,ax=0,para={}):
+        self.para.update(self.default_para)
+        if (ax == 0):
+            fig,ax = Create_Figure();
+        self.set_para(para);
+        Bx = self.a.Magnetic_Field_Bx_averaged.data;
+        By = self.a.Magnetic_Field_By_averaged.data;
+        ax.streamplot(self.s.axis['x'],self.s.axis['y'],Bx.T,By.T,\
+                      density = self.para['density'],\
+                      linewidth = self.para['linewidth'],\
+                      cmap = self.para['cmap'])
+    def draw_spectrum(self,ax,key, para={}, weight = 0):
+        key = key.split('.')[1]
+        self.para.update(self.default_para)
+        if (ax == 0):
+            fig,ax = Create_Figure();
+        var = self.a.__dict__[key]; 
+        speciesname = var.name.split('/')[3];# species
+        print(np.min(var.data),np.max(var.data))
+        self.set_para(para={'axesname':['E/Mev','dN/dE',speciesname+str(self.a.Header['time'])],\
+                            'xylims':0});
+        if (type(weight) == np.int):
+            draw_spectrum(ax=ax,data = var.data);
+#         else:
+#             keyw =  var.name.split('/');
+#             weight = self.a.dict__[key]
+        Axis_set(ax,\
+                        axesname=self.para['axesname'],\
+                        xylims = self.para['xylims'],\
+                       )
+        
+    def draw(self,ax,key,para={}):
+        '''
+        Input: 
+            ax is the axis of the figure 
+            key is the key value of sdf file, like key = 'Derived_Number_Density_electron'
+            para is the dictionary paramater setting which includes:
+                'norm':1,
+                'caxis':0,
+                'cmap':'jet',
+                'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+                'save':False,
+                'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+self.name]
+        Output:
+            Return Fig,ax 
+            Figure
+        '''
+                
+        #setting 
+        #judge whether the key exist in a. and get data.
+        #judge the parameter setting.
+        # if default  
+        # or not default set_para(para)
+#        if (key == 'Derived_Number_Density_electron'):
+#            para = {
+#                    'norm':self.s.const['ne'],
+#                    'caxis':[0,3],
+#                    'cmap':'jet',
+#                    'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+#                    'save':False,
+#                    'axesname': [r'$x/d_i$',r'$y/d_i$',r'$N_e$'+self.name]
+#                }
+##             key = 
+#            
+#        if (key == 'Derived_EkBar_electron'):           
+#            para = {
+#                    'norm':self.s.const['ne'],
+#                    'caxis':[0,3],
+#                    'cmap':'jet',
+#                    'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+#                    'save':False,
+#                    'axesname': [r'$x/d_i$',r'$y/d_i$',r'$N_e$'+self.name]
+#                }
+#            
+#         self.set_para(para)
+        key = key.split('.')[1]
+        if (type(ax) == np.int):
+            fig,ax = Create_Figure()
+            
+        var = self.a.__dict__[key].data;  
+        vmin = np.min(var);
+        vmax = np.max(var);
+        #self.para.update(self.default_para)
+        self.para['caxis'] = 0; # autosetting vmin - vmax;
+        self.para['axesname'][2] = key + str(self.a.Header['time'])
+        if (type(para) != np.int):
+            self.set_para(para);
+#         di = self.s.di;
+#         print(self.para['caxis']);
+        ax,gci,cb = draw_field_snapshot(ax=ax,\
+                                        data=var.T/self.para['norm'],\
+                                        extent=self.extent,\
+                                        cmap=self.para['cmap'],\
+                                        caxis=self.para['caxis'],\
+                                       )
+    #                                             )
+        Axis_set(ax,\
+                        axesname=self.para['axesname'],\
+                        xylims = self.para['xylims'],\
+                       )
+        #autoseting colorcaxis:
+        if (self.para['save']):
+            plt.savefig(self.para['axesname'][2]+'.png',dpi = 200);
+
+        return ax 
+    def angle_distribution(self,key,species,dim = 2):
+        theta = sr.Get_particle_theta(sdffile = self.a,dim = dim,species = species);
+        key = key.split()[1];
+        gam = self.a__dict__[key];
 
 
 #**************main test

@@ -3,6 +3,10 @@ import sdf
 import re
 import numpy as np
 import os 
+### const Part
+c = 3e8
+qe = 1e-16
+
 
 PARTVARNAME_RC = ['Px','Py','Pz','Gamma','Grid']
 SPECIES_RC = 'electron'
@@ -15,7 +19,6 @@ FIELDNAME_RC = ['Ex_averaged','Ey','Bz_averaged','Density_electron','EkBar_elect
 #         return 'Derived+''_'.join(str_list)
 
 def Get_EMTensor(a,averaged = True,dim = 2):
-    c = 3e8
     '''
     Get F_{ik} = [[0 Ex Ey Ez],
                   [-Ex,0,-Hz,Hy],
@@ -214,7 +217,7 @@ def Get_field_energy(sdffile,key='all'):
     '''
     just for MR case;
     '''
-    #Const 
+    #const 
     c = 3e8
     epsilon0 = 8.854e-12
     a = sdf.read(sdffile);
@@ -255,7 +258,7 @@ def Get_file(prefix,dirc=''):
 	cwd = os.getcwd()
 	for files in sorted(os.listdir(cwd+'/'+dirc)):
 		if re.match(regu_var,files):
-			filename.append(files)
+			filename.append(dirc+files)
 	return filename
 
 def Get_laser_en(sdffile):
@@ -366,7 +369,145 @@ def tp_var(pos,varname,species='tra_ele',fts=0,dim = 2):
         
     return tvar
 
+##########Class Simu_info()-------#################
 
+class simu_info():
+    '''
+    This Class is aimed to get the information of the Simulation.
+    And normalized parameter in Simulations.
+    '''
+    def __init__(self,deckfile='const.status',Nx=0,Ny=0,Nz=0,name = ''):
+        self.name = name;
+        self.axis={};
+        self.map={}
+        self.Nx = Nx;
+        self.Ny = Ny;
+        self.const={'di':1,'B0':1,'E0':1,'J0':1,'xmin':0,'xmax':Nx,'ymin':0,'ymax':Ny};
+        print('Begin Read Deck')
+        self.deck_read(deck_name = deckfile)
+        self.axis['x'] = np.linspace(self.const['xmin']/self.const['di'],self.const['xmax']/self.const['di'],self.Nx);
+        self.axis['y'] = np.linspace(self.const['ymin']/self.const['di'],self.const['ymax']/self.const['di'],self.Ny);
+        self.map['xx'],self.map['yy'] = np.meshgrid(self.axis['x'],self.axis['y']);  
+    def deck_read(self,deck_name):
+        try:
+            f = open(deck_name,'r')
+        except:
+            print('can not find this file:', deck_name)
+            return;
+        print('Open file',deck_name);
+        lines = f.readlines()
+        for line in lines:
+            exp = line.split()
+    #         print(exp)
+            self.const[exp[0]] = float(exp[2])
+        ##
+        self.const['E0'] = self.const['B0']*c
+        self.const['J0'] = self.const['drift_V']*self.const['ne']*qe
+
+    #             print(exp[0])
+        f.close()
+        print('Close File')
+
+    def get_extent(self,sdffile):
+        a = sdf.read(sdffile);
+        extent = Get_extent(a);
+        return np.array(extent)
+    
+    
+#####------Class mrc ----------######
+def calc_mean_var(data,x,y, region):
+#     var = a.Electric_Field_Ez_averaged;
+#     x = ez.grid_mid.data[0]
+#     y = ez.grid_mid.data[1]
+    # print(len(x))
+#     dx = x[1]-x[0]
+#     dy = y[1]-y[0]
+    xmin,xmax,ymin,ymax = region;
+    index_x = np.array(x < xmax)*np.array(x > xmin); 
+    index_y = np.array(y < ymax)*np.array(y > ymin); 
+    cell_x0 = int((xmin - x[0])/dx)
+    cell_x1 = int((xmax - x[0])/dx)
+
+    cell_y0 = int((ymin - y[0])/dy)
+    cell_y1 = int((ymax - y[0])/dy)
+
+    mean_ez = 0.0
+    w = 0.0
+    for ix in range(cell_x0,cell_x1):
+        for iy in range(cell_y0,cell_y1):
+            mean_ez = mean_ez + ez.data[ix,iy]
+            w = w +1
+    print(mean_ez/w)
+    xmin,xmax,ymin,ymax = region;
+    index_x = np.array(x < xmax)*np.array(x > xmin); 
+    index_y = np.array(y < ymax)*np.array(y > ymin); 
+    cell_x0 = int((xmin - x[0])/dx)
+    cell_y0 = int((ymin - y[0])/dy)
+    
+def calc_gradient(dx,dy,data):
+    nx,ny = data.shape;
+    gx = np.zeros(data.shape);
+    gy = np.zeros(data.shape);
+    for i in range(0,nx):
+        for j in range(0,ny):
+            if (i == 0):
+                gx[i,j] = (data[i+1,j]-data[i,j])/dx;
+            elif (i == nx-1):
+                gx[i,j] = (data[i,j]-data[i-1,j])/dx;
+            else:
+                gx[i,j] = (data[i+1,j]-data[i-1,j])/2/dx;
+            if (j == 0):
+                gy[i,j] = (data[i,j+1]-data[i,j])/dy;
+            elif (j == ny-1):
+                gy[i,j] = (data[i,j]-data[i,j-1])/dy;
+            else:  
+                gy[i,j] = (data[i,j+1]-data[i,j-1])/2/dy;
+    return gx,gy
+    
+def Magnetic_Flux(sdfname,region):
+        ''' Input:
+            sdfname: 0000.sdf 
+            region = [xmin,xmax,ymin,ymax] of your integral region
+            Output:
+            Fx =int By*dx
+            Fy =int Bx*dy 
+        '''
+        a = sdf.read(sdfname)
+        Bx = a.Magnetic_Field_Bx_averaged;
+        By = a.Magnetic_Field_By_averaged;
+        x = Bx.grid_mid.data[0]
+        y = Bx.grid_mid.data[1]
+        nx,ny = Bx.data.shape
+        if (nx != len(x)):
+            print("The shape nx,ny is",nx,ny,', but the length x,y is ',len(x),len(y))
+            return 0;
+        #return cell_x and cell_y 
+        dx = x[1] - x[0];
+        dy = y[1] - y[0];
+        xmin,xmax,ymin,ymax = region;
+        index_x = np.array(x < xmax)*np.array(x > xmin); 
+        index_y = np.array(y < ymax)*np.array(y > ymin); 
+        cell_x0 = int((xmin - x[0])/dx)
+        cell_y0 = int((ymin - y[0])/dy)
+        #print(cell_x0,cell_y0)
+        #Flux_y = int^{y_max}_{y_min} Bx dy
+        Bx2 = Bx.data[cell_x0,:];
+        By2 = By.data[:,cell_y0];
+        Flux_y = np.trapz(Bx2[index_y],y[index_y])
+        Flux_x = np.trapz(By2[index_x],x[index_x])
+        return Flux_x,Flux_y    
+    
+def get_mag_flux(region, prefix = '',dirc = ''):
+    ffs = Get_file(prefix = prefix,dirc = dirc);
+    time = []
+    fxs = []
+    fys = []
+    for i in range(1,len(ffs)):
+        time.append(sdf.read(ffs[i]).Header['time']);
+        fx,fy = Magnetic_Flux(ffs[i],region = region);
+        fxs.append(fx);
+        fys.append(fy);
+    return fxs,fys,time
 ##test region
 #Get_partvar_npy()
 
