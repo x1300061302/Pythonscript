@@ -194,7 +194,7 @@ def Get_max_var(key,prefix = '',dirc = '', ffs = []):
         a = sdf.read(dirc+ffs[i])
         max_var.append(np.max(a.__dict__[key].data));
         time.append(a.Header['time'])
-    return max_var,time
+    return np.array(max_var),np.array(time)
 
 def Get_Compare_var(sdflist, key,return_time = False):
     key = key.split('.')[1]
@@ -208,9 +208,9 @@ def Get_Compare_var(sdflist, key,return_time = False):
         except:
             print('Wrong Can not Read')
     if (return_time): 
-        return vars,time
+        return np.array(vars),np.array(time)
     else:
-        return vars
+        return np.array(vars)
     
 
 def Get_field_energy(sdffile,key='all'):
@@ -292,15 +292,20 @@ def curl(Ax,Ay,dx = 1.0,dy = 1.0,Az=0,order=2):
         for iy in range(1,ny):
             curlAz[ix,iy] = cx*(Ay[ix  , iy] - Ay[ix-1, iy])-cy*(Ax[ix  , iy]   - Ax[ix  , iy-1])
     return curlAz
-def Get_energy(prefix='',dirc = ''):
+def Get_energy(prefix='',dirc = '',ret = False):
     ffs = Get_file(prefix = prefix,dirc = dirc);
     TFE = []
     TPE = []
+    time = []
     for i in range(0,len(ffs)):
-        a = sdf.read(dirc + ffs[i]);
+        a = sdf.read(ffs[i]);
+        time.append(a.Header['time'])
         TFE.append(a.Total_Field_Energy_in_Simulation__J_.data)
         TPE.append(a.Total_Particle_Energy_in_Simulation__J_.data)
-    return np.array(TFE),np.array(TPE)
+    if (ret):
+        return np.array(TFE),np.array(TPE),np.array(time)
+    else:
+        return np.array(TFE),np.array(TPE)
 
 ###############--------------------############some operation:
 def Get_hist_var(var,weights = 0, bins=500,normed=False):
@@ -382,7 +387,7 @@ class simu_info():
         self.map={}
         self.Nx = Nx;
         self.Ny = Ny;
-        self.const={'di':1,'B0':1,'E0':1,'J0':1,'xmin':0,'xmax':Nx,'ymin':0,'ymax':Ny};
+        self.const={'di':1,'T0':1,'B0':1,'E0':1,'J0':1,'xmin':0,'xmax':Nx,'ymin':0,'ymax':Ny};
         print('Begin Read Deck')
         self.deck_read(deck_name = deckfile)
         self.axis['x'] = np.linspace(self.const['xmin']/self.const['di'],self.const['xmax']/self.const['di'],self.Nx);
@@ -498,6 +503,13 @@ def Magnetic_Flux(sdfname,region):
         return Flux_x,Flux_y    
     
 def get_mag_flux(region, prefix = '',dirc = ''):
+    '''Input:
+        region: in real unit like [xmin,xmax,ymin,ymax]
+        prefix
+        dirc
+       Output:
+       return fxs,fys,time(datatype: np.array)
+    '''
     ffs = Get_file(prefix = prefix,dirc = dirc);
     time = []
     fxs = []
@@ -507,7 +519,7 @@ def get_mag_flux(region, prefix = '',dirc = ''):
         fx,fy = Magnetic_Flux(ffs[i],region = region);
         fxs.append(fx);
         fys.append(fy);
-    return fxs,fys,time
+    return np.array(fxs),np.array(fys),np.array(time)
 ##test region
 #Get_partvar_npy()
 

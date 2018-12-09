@@ -66,7 +66,7 @@ def Create_Figure(figsize=[8,8], x=1, y=1, n=1, polar=False):
 
 
 # ------------Figure/axis setting------$$$$$$$$$
-def Line_set(ax,linewidth = 3.0,linestyle = '-',label =''):
+def Line_set(ax,linewidth = 3.0,linestyle = '-',label ='',marker =''):
     '''Input: ax: is the axis you draw line
               linewidth:single value of a list 
               linestyle:
@@ -77,6 +77,7 @@ def Line_set(ax,linewidth = 3.0,linestyle = '-',label =''):
         line = lines[i]
         line.set_linewidth(linewidth)
         line.set_linestyle(linestyle)
+        line.set_marker(marker)
 #         line.set_label(label[i])
     
     
@@ -97,7 +98,7 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
         ax.set_ylabel(axesname[1],fontsize=fs);
 #         ax.set_yticks(fontsize=fs);
 	#title
-        ax.set_title(axesname[2],fontsize=fs);
+        ax.set_title(axesname[2],fontsize=fs-5);
         ax.grid(grid);
         if (legend):
             plt.legend(fontsize =fs);
@@ -362,23 +363,32 @@ class quick_draw(object):
     Q.draw_photon_Ekbar()
     like this
     '''
-    def __init__(self, sdffile,name = '',deckfile='const.status'):
+    def __init__(self, sdffile,name = '',deckfile='const.status',Nx = 1,Ny = 1):
         a = sdf.read(sdffile)
         if name == '':
             self.name = str(a.Header['time']);
         else:
             self.name = name;
         self.a = a;
-        self.s = sr.simu_info(deckfile,\
-                           Nx=len(a.Grid_Grid.data[0])-1,\
-                           Ny=len(a.Grid_Grid.data[1])-1,\
+        try:
+            self.s = sr.simu_info(deckfile,\
+                           Nx=Nx,\
+                           Ny=Ny,\
                           );  
-        self.extent = np.array(sr.Get_extent(self.a))/self.s.const['di'];
+        except:
+            print('No Grid variable and extent variable')
+            self.s = sr.simu_info()
+        try:    
+            self.extent = np.array(sr.Get_extent(self.a))/self.s.const['di'];
+        except:
+            self.extent = [0,Nx,0,Ny];
+            print('No extent, but set [0,',Nx,',0,',Ny,']')
         self.para={
             'norm':1,
             'caxis':0,
             'cmap':'jet',
-            'xylims':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
+            'xylims':0,
+            'extent':[[self.extent[0],self.extent[1]],[self.extent[2],self.extent[3]]],
             'save':False,
             'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+str(a.Header['time'])],
             'density': 1,
@@ -404,7 +414,8 @@ class quick_draw(object):
         ax.streamplot(self.s.axis['x'],self.s.axis['y'],Bx.T,By.T,\
                       density = self.para['density'],\
                       linewidth = self.para['linewidth'],\
-                      cmap = self.para['cmap'])
+                      cmap = self.para['cmap'],\
+                      )
     def draw_spectrum(self,ax,key, para={}, weight = 0):
         key = key.split('.')[1]
         self.para.update(self.default_para)
@@ -413,10 +424,10 @@ class quick_draw(object):
         var = self.a.__dict__[key]; 
         speciesname = var.name.split('/')[3];# species
         print(np.min(var.data),np.max(var.data))
-        self.set_para(para={'axesname':['E/Mev','dN/dE',speciesname+str(self.a.Header['time'])],\
-                            'xylims':0});
+        self.set_para(para={'axesname':['E/Mev','dN/dE',speciesname+str(self.a.Header['time']/self.s.const['T0'])[0:5]+'T0'],\
+                            'xylims':self.para['xylims']});
         if (type(weight) == np.int):
-            draw_spectrum(ax=ax,data = var.data);
+            draw_spectrum(ax=ax,data = var.data/Mev);
 #         else:
 #             keyw =  var.name.split('/');
 #             weight = self.a.dict__[key]
@@ -478,7 +489,7 @@ class quick_draw(object):
         vmax = np.max(var);
         #self.para.update(self.default_para)
         self.para['caxis'] = 0; # autosetting vmin - vmax;
-        self.para['axesname'][2] = key + str(self.a.Header['time'])
+        self.para['axesname'][2] = key + ' '+str(self.a.Header['time']/self.s.const['T0'])[0:5] + 'T0'
         if (type(para) != np.int):
             self.set_para(para);
 #         di = self.s.di;
