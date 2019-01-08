@@ -316,6 +316,14 @@ def Get_hist_var(var,weights = 0, bins=500,normed=False):
     axx = 0.5*(ad[1:]+ad[:-1]);
     return hd,axx
 def Get_hist2d_var(x,y,bins=[100,200],normed = False):
+    '''
+    Input:
+        x,y,
+        bins = [100,200]
+        normed = False
+    Output:
+        h_xy,xx,yy
+    '''
     h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins)
     xax = np.linspace(np.min(x), np.max(x), bins[0])
     yax = np.linspace(np.min(y), np.max(y), bins[1])
@@ -417,9 +425,48 @@ class simu_info():
         a = sdf.read(sdffile);
         extent = Get_extent(a);
         return np.array(extent)
+
     
     
-#####------Class mrc ----------######
+#####------Class mrc ----------######  
+def get_juuj(a):
+    '''
+    Input:
+    a:sdffile
+    Output:
+    the Jv+Jv term for calculating the Ohm
+    '''
+    j = {}
+    u = {}
+    juuj={}
+    j['x'] = a.Current_Jx.data
+    j['y'] = a.Current_Jy.data
+    j['z'] = a.Current_Jz.data
+    u['x'] = a.Derived_Velocity_Ux.data
+    u['y'] = a.Derived_Velocity_Uy.data
+    u['z'] = a.Derived_Velocity_Uz.data
+    for dir1 in ['x','y','z']:
+        for dir2 in ['x','y','z']:
+            juuj[dir1+dir2] = j[dir1]*u[dir2]+u[dir1]*j[dir2];
+    return juuj
+
+def cross(a,b):
+    c = np.zeros(3)
+    c[2] = a[0]*b[1] - a[1]*b[0]
+    c[1] = a[1]*b[2] - a[2]*b[1]
+    c[0] = a[2]*b[1] - a[1]*b[2]
+    return c 
+def calc_cross(Ax,Ay,Bx,By):
+    Nx,Ny = Ax.shape
+    C = np.zeros([Nx,Ny])
+    for ix in range(Nx):
+        for iy in range(Ny):
+            a = [Ax[ix,iy],Ay[ix,iy],0]
+            b = [Bx[ix,iy],By[ix,iy],0]
+            C[ix,iy] = cross(a,b)[2]
+    return C
+
+    
 def calc_mean_var(data,x,y, region):
 #     var = a.Electric_Field_Ez_averaged;
 #     x = ez.grid_mid.data[0]
@@ -448,27 +495,91 @@ def calc_mean_var(data,x,y, region):
     index_y = np.array(y < ymax)*np.array(y > ymin); 
     cell_x0 = int((xmin - x[0])/dx)
     cell_y0 = int((ymin - y[0])/dy)
-    
-def calc_gradient(dx,dy,data):
-    nx,ny = data.shape;
-    gx = np.zeros(data.shape);
-    gy = np.zeros(data.shape);
-    for i in range(0,nx):
-        for j in range(0,ny):
+
+def calc_mean_var_line(data,direction,delta_grid,cell):
+    Nx,Ny = data.shape
+    if (direction == 'x'):
+        data_mean_line = np.zeros(Nx)
+        for iy in range(cell-delta_grid,cell+delta_grid+1):
+            data_mean_line[:] = data_mean_line[:] + data[:,iy]
+    if (direction == 'y'):
+        data_mean_line = np.zeros(Ny)
+        for ix in range(cell-delta_grid,cell+delta_grid+1):
+            data_mean_line[:] = data_mean_line[:] + data[ix,:]
+    return data_mean_line/(delta_grid*2+1)
+
+def calc_dot_2d(Ax,Ay,region,dx,dy,delta_nx,delta_ny):
+        nx,ny = Ax.shape;
+        gx = np.zeros(Ax.shape);
+        gy = np.zeros(Ax.shape);
+        for i in range(region[0],region[1]):
+            for j in range(region[2],region[3]):
+                if (i == 0):
+                    gx[i,j] = (Ax[i+delta_nxx,j]-Ax[i,j])/delta_nx/dx;
+                elif (i == nx-1):
+                    gx[i,j] = (Ax[i,j]-Ax[i-delta_nx,j])/delta_nx/dx;
+                else:
+                    gx[i,j] = (Ax[i+delta_nx,j]-Ax[i-delta_nx,j])/2/delta_nx/dx;
+                if (j == 0):
+                    gy[i,j] = (Ay[i,j+delta_ny]-Ay[i,j])/delta_ny/dy;
+                elif (j == ny-1):
+                    gy[i,j] = (Ay[i,j]-Ay[i,j-delta_ny])/delta_ny/dy;
+                else:  
+                    gy[i,j] = (Ay[i,j+delta_ny]-Ay[i,j-delta_ny])/2/delta_ny/dy;
+        return gx+gy
+            
+def Magnetic_Flux(sdfname,region):
+        ''' Input:
+            sdfname: 0000.sdf 
+            region = [xmin,xmax,ymin,ymax] of your integral region
+            Output:
+            Fx =int By*dx
+            Fy =int Bx*dy 
+        '''
+        a = sdf.read(sdfname)
+        Bx = a.Magnetic_Field_Bx_averaged;
+        By = a.Magnetic_Field_By_averaged;
+        x = Bx.grid_mid.data[0]
+        
+def calc_gradient(data,dx,dy=0,region = 0,dim = 1,delta_n = 1,delta_ny=1):
+    if (dim == 1):
+        nx = len(data);
+        gx = np.zeros(nx);
+        if (type(region) == 0):
+            cell_x0 = 0;
+            cell_x1 = nx
+        else:
+            cell_x0,cell_x1 = region
+
+        for i in range(cell_x0,cell_x1):
+            #raise TypeError()
             if (i == 0):
-                gx[i,j] = (data[i+1,j]-data[i,j])/dx;
+                gx[i] = (data[i+delta_n]-data[i])/delta_n/dx;
             elif (i == nx-1):
-                gx[i,j] = (data[i,j]-data[i-1,j])/dx;
+                gx[i] = (data[i]-data[i-delta_n])/delta_n/dx;
             else:
-                gx[i,j] = (data[i+1,j]-data[i-1,j])/2/dx;
-            if (j == 0):
-                gy[i,j] = (data[i,j+1]-data[i,j])/dy;
-            elif (j == ny-1):
-                gy[i,j] = (data[i,j]-data[i,j-1])/dy;
-            else:  
-                gy[i,j] = (data[i,j+1]-data[i,j-1])/2/dy;
-    return gx,gy
-    
+                gx[i] = (data[i+delta_n]-data[i-delta_n])/2/delta_n/dx;
+        return gx
+    if (dim == 2):
+        nx,ny = data.shape;
+        gx = np.zeros(data.shape);
+        gy = np.zeros(data.shape);
+        for i in range(region[0],region[1]):
+            for j in range(region[2],region[3]):
+                if (i == 0):
+                    gx[i,j] = (data[i+delta_n,j]-data[i,j])/delta_n/dx;
+                elif (i == nx-1):
+                    gx[i,j] = (data[i,j]-data[i-delta_n,j])/delta_n/dx;
+                else:
+                    gx[i,j] = (data[i+delta_n,j]-data[i-delta_n,j])/2/delta_n/dx;
+                if (j == 0):
+                    gy[i,j] = (data[i,j+delta_ny]-data[i,j])/delta_ny/dy;
+                elif (j == ny-1):
+                    gy[i,j] = (data[i,j]-data[i,j-delta_ny])/delta_ny/dy;
+                else:  
+                    gy[i,j] = (data[i,j+delta_ny]-data[i,j-delta_ny])/2/delta_ny/dy;
+        return gx,gy
+            
 def Magnetic_Flux(sdfname,region):
         ''' Input:
             sdfname: 0000.sdf 
@@ -501,6 +612,34 @@ def Magnetic_Flux(sdfname,region):
         Flux_y = np.trapz(Bx2[index_y],y[index_y])
         Flux_x = np.trapz(By2[index_x],x[index_x])
         return Flux_x,Flux_y    
+
+def Find_p(sdffile, region,index = 375):
+    a = sdf.read(ffs[i])
+    bx = a.Magnetic_Field_Bx_averaged.data;
+    by = a.Magnetic_Field_By_averaged.data;
+    abs_b = np.sqrt(bx**2 + by**2)
+    data = abs_b[:,index];
+    pos = np.where(data[region[0]:region[1]] == np.min(data[region[0]:region[1]]))[0]
+    return pos + region[0]
+def get_slope(Xi,Yi,p0):
+    '''Input: 
+        Xi,Yi
+       Output:
+       p0 
+    '''
+    from scipy.optimize import leastsq
+    def func(p,x):
+        k,b=p
+        return k*x+b
+
+    def error(p,x,y):
+        return func(p,x)-y #x、y都是列表，故返回值也是个列表
+    #初始值
+    p0=p0
+    Para=leastsq(error,p0,args=(Xi,Yi)) #把error函数中除了p以外的参数打包到args中
+    k,b=Para[0]
+    print("k=",k,'\n',"b=",b)
+    return k,b
     
 def get_mag_flux(region, prefix = '',dirc = ''):
     '''Input:
@@ -510,18 +649,108 @@ def get_mag_flux(region, prefix = '',dirc = ''):
        Output:
        return fxs,fys,time(datatype: np.array)
     '''
+
     ffs = Get_file(prefix = prefix,dirc = dirc);
     time = []
     fxs = []
     fys = []
     for i in range(1,len(ffs)):
         time.append(sdf.read(ffs[i]).Header['time']);
-        fx,fy = Magnetic_Flux(ffs[i],region = region);
+        if (type(region) == np.ndarray):
+            fx,fy = Magnetic_Flux(ffs[i],region = region);
+        elif(type(region) == list):
+            fx,fy = Magnetic_Flux(ffs[i],region = region[i]);
         fxs.append(fx);
         fys.append(fy);
     return np.array(fxs),np.array(fys),np.array(time)
+def Get_De(sdffile):
+    a = sdf.read(sdffile)
+    Jx = a.Current_Jx_averaged.data;
+    Jy = a.Current_Jy_averaged.data;
+    Jz = a.Current_Jz_averaged.data
+    Bx = a.Magnetic_Field_Bx_averaged.data
+    By = a.Magnetic_Field_By_averaged.data
+    Bz = a.Magnetic_Field_Bz_averaged.data
+    Ex = a.Electric_Field_Ex_averaged.data
+    Ey = a.Electric_Field_Ey_averaged.data
+    Ez = a.Electric_Field_Ez_averaged.data
+    Nume = a.Derived_Number_Density_electron.data;
+
+    nx,ny = Nume.shape
+    print(nx,ny)
+    Vx = Jx/Nume/qe
+    Vy = Jy/Nume/qe
+    Vz = Jz/Nume/qe
+
+    Dex = Jx*(Ex+Vy*Bz-Vz*By)
+    Dey = Jy*(Ey+Vz*Bx-Vx*Bz)
+    Dez =  Jz*(Ez + Vx*By - Vy*Bx)
+
+    VdotE = Vx*Ex + Vy*Ey + Vz*Vz
+    De = Dex+ Dey + Dez
+    return De
 ##test region
 #Get_partvar_npy()
 
+########People's model 
+def smooth(x,window_len=11,window='hanning'):
+    """smooth the data using a window with requested size.
 
+    This method is based on the convolution of a scaled window with the signal.
+    The signal is prepared by introducing reflected copies of the signal
+    (with the window size) in both ends so that transient parts are minimized
+    in the begining and end part of the output signal.
+
+    input:
+        x: the input signal
+        window_len: the dimension of the smoothing window; should be an odd integer
+        window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
+            flat window will produce a moving average smoothing.
+
+    output:
+        the smoothed signal
+
+    example:
+
+    t=linspace(-2,2,0.1)
+    x=sin(t)+randn(len(t))*0.1
+    y=smooth(x)
+
+    see also:
+
+    numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
+    scipy.signal.lfilter
+
+    TODO: the window parameter could be the window itself if an array instead of a string
+    NOTE: length(output) != length(input), to correct this: return y[(window_len/2-1):-(window_len/2)] instead of just y.
+    """
+
+    if(x.ndim != 1):
+        raise ValueError("smooth only accepts 1 dimension arrays.")
+
+    if (x.size < window_len):
+        raise ValueError("Input vector needs to be bigger than window size.")
+
+
+    if window_len<3:
+        return x
+
+
+    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        raise ValueError("Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
+
+
+    s=np.r_[x[window_len-1:0:-1],x,x[-2:-window_len-1:-1]]
+    #print(len(s))
+    if window == 'flat': #moving average
+        w=np.ones(window_len,'d')
+    else:
+        w=eval('np.'+window+'(window_len)')
+
+    y=np.convolve(w/w.sum(),s,mode='valid')
+    return y
+
+
+
+#########demonstrate how to use it
 

@@ -55,7 +55,7 @@ def Create_Figure2(n,m,fw=10,fh=10,sp=2,sw=8,sh=8,ratio=1):
     return ax_list
 #     plt.show()
 
-def Create_Figure(figsize=[8,8], x=1, y=1, n=1, polar=False):
+def Create_Figure(figsize=[6,6], x=1, y=1, n=1, polar=False):
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=figsize)
     if (polar):
@@ -108,7 +108,8 @@ def Axis_set(ax,axesname=['x','y',''],fs=20.0,xticklabel=0,xtickrange=0,yticklab
         ax.spines['right'].set_linewidth(lw)
         ax.spines['top'].set_linewidth(lw)
         ax.tick_params(which = 'both',width = lw,colors = 'black',labelsize=fs)
-        ax.tick_params(direction = 'in')
+        ax.tick_params(which = 'major',direction = 'in')
+        ax.tick_params(which = 'minor',direction = 'in')
         ax.tick_params(length  = ticklength)
         if (showtick):
             ax.tick_params(top = True,right = True)
@@ -148,18 +149,24 @@ def Legend_outside(ax,loc,ncol = 1,bbox=(1.0,1.0),fs=20):
     
 
 #***********Draw----------------$$$$$$$$$$$$$    
-def draw_histogram2d(ax, x, y, bins=[300, 300], xylim=0, caxis=0, fontsize=20,cmap = 'jet',log10h =True):
+def draw_histogram2d(x, y, ax = 0, bins=[500, 500], xylim=0, caxis=0, fontsize=20,cmap = 'jet',log10h =True):
+    '''to draw 2-D histogram figure 
+        Input:
+        x,y = 1-D np.ndarray
+        handle = ax
+        bins =[nx,ny]
+        xylim = [[xlim],[ylim]] means the region to show
+        caxis = region of colobar
+        log10h = log10(h)
+        Output:
+        ax,gci 
+        
+    
+    '''
+    import matplotlib.pyplot as plt
+
     if (ax == 0):
         fig,ax = Create_Figure();
-    '''to draw 2-D histogram figure 
-       handle = ax
-       data = [x,y]
-       bins =[nx,ny]
-       xylim = [[xlim],[ylim]] means the region to show
-       caxis = region of colobar
-       log10h = log10(h)
-       '''
-    import matplotlib.pyplot as plt
  
     h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins)
     if (log10h):
@@ -171,8 +178,8 @@ def draw_histogram2d(ax, x, y, bins=[300, 300], xylim=0, caxis=0, fontsize=20,cm
         vmin = caxis[0]
         vmax = caxis[1]
     else:
-        vmin = np.min(log10h)
-        vmax = np.max(log10h)
+        vmin = np.min(np.min(log10h))
+        vmax = np.max(np.max(log10h))
     print('get histogram')
     # axis
     xax = np.linspace(np.min(x), np.max(x), bins[0])
@@ -185,13 +192,20 @@ def draw_histogram2d(ax, x, y, bins=[300, 300], xylim=0, caxis=0, fontsize=20,cm
     
     # colorbar
 
-def draw_angle_distribution3d(ax, T, R, weights = 0,tlim=0, rlim=0, binT=360, binR=1000, caxis=0,log10=True,cmap='jet'):
+def draw_angle_distribution3d(ax, T, R, weights = 0,tlim=0, rlim=0, binT=360, binR=1000, caxis=0, log10=True,cmap='jet'):
+    ''' 
+    Input: ax
+           T = Theta  1-D np.ndarray or list
+           R = Radius 1-D np.ndarray or list 
+           weights = Weight 1-D np.ndarray or list
+           tlim,rlim,binT,binR,caxis,log10,cmap
+    Output:
+           ax,pcmesh
+    Note:
+    make sure ax style is polarization
+    '''
     if (ax == 0):
         fig,ax = Create_Figure(polar=True);
-    ''' ax should be polarization
-    T,R is N-array 
-    rlim = 0 means default else rlim = [r_min,r_max]
-    draw angle distribution histogram'''
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     if (type(weights) == np.int):
@@ -303,26 +317,35 @@ def draw_spectrum_nline(data, ax = 0, label=0, weights=0, lw=3.0, cl=MYLinecolor
     return ax
 
 
-def draw_field_snapshot(data, extent, ax = 0, caxis=0,cmap='jet',bar_set=True):
-    '''data should be 2-D array (nx,ny) 
+def draw_field_snapshot(data, extent=0, ax = 0, caxis=0,cmap='jet',bar_set=True):
+    '''Input:
+    data should be 2-D array (nx,ny) 
     extent should be ([x_min,x_max],[y_min,y_max])
     xylim = ([xmin,xmax],[ymin,ymax])
     label = ['xlabel/Unit','ylabel/Unit','title'] 
     Display dicide whether to show
-    figname default = title'''
+    figname default = title
+       Output:
+        or return ax,gci 
+        return ax,gci,cb;
+    
+    '''
     if (ax == 0):
         fig,ax = Create_Figure();
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     from mpl_toolkits.mplot3d import Axes3D
-    nx, ny = data.shape
+    #For python it is strange for nx,ny 
+    ny,nx = data.shape
     if (type(caxis) != np.int):
         vmin = caxis[0]
         vmax = caxis[1]
     else:
         vmin = data.min()
         vmax = data.max()
+    if (type(extent) == np.int):
+        extent = [0,nx,0,ny]
     gci = ax.imshow(data, extent=extent, origin='lower', cmap=cmap,
                     vmax=vmax, vmin=vmin, interpolation='spline36')
     if (bar_set):
@@ -363,15 +386,16 @@ class quick_draw(object):
     Q.draw_photon_Ekbar()
     like this
     '''
-    def __init__(self, sdffile,name = '',deckfile='const.status',Nx = 1,Ny = 1):
-        a = sdf.read(sdffile)
+    def __init__(self, sdffile,name = '',dirc = '',deckfile='const.status',Nx = 1,Ny = 1):
+        self.dirc = dirc
+        a = sdf.read(dirc+''+sdffile)
         if name == '':
             self.name = str(a.Header['time']);
         else:
             self.name = name;
         self.a = a;
         try:
-            self.s = sr.simu_info(deckfile,\
+            self.s = sr.simu_info(dirc+deckfile,\
                            Nx=Nx,\
                            Ny=Ny,\
                           );  
@@ -392,7 +416,8 @@ class quick_draw(object):
             'save':False,
             'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+str(a.Header['time'])],
             'density': 1,
-            'linewidth': 2.0
+            'linewidth': 2.0,
+            'bins':[500,500]
         }
         self.default_para = self.para;
     def get_s(self):
@@ -404,18 +429,31 @@ class quick_draw(object):
     def set_para(self,para):
         self.para.update(para)
 #         return self.para;
-    def draw_MagneticLine(self,ax=0,para={}):
+    def draw_MagneticLine(self,ax=0,para={},avg = True):
         self.para.update(self.default_para)
         if (ax == 0):
             fig,ax = Create_Figure();
         self.set_para(para);
-        Bx = self.a.Magnetic_Field_Bx_averaged.data;
-        By = self.a.Magnetic_Field_By_averaged.data;
+        if (avg):
+            Bx = self.a.Magnetic_Field_Bx_averaged.data;
+            By = self.a.Magnetic_Field_By_averaged.data;
+        else:
+            Bx = self.a.Magnetic_Field_Bx.data;
+            By = self.a.Magnetic_Field_By.data;
         ax.streamplot(self.s.axis['x'],self.s.axis['y'],Bx.T,By.T,\
                       density = self.para['density'],\
                       linewidth = self.para['linewidth'],\
-                      cmap = self.para['cmap'],\
+                      #cmap = self.para['cmap'],\
                       )
+    def draw_phasespace(self,x,y,ax = 0,para={}):
+        self.set_para(para);
+        ax,gci = draw_histogram2d(x = x.data/self.para['norm'],y = y.data/self.para['norm'],ax = ax,bins = self.para['bins'],caxis = self.para['caxis'])
+        xname = x.name.split('/')[1]
+        yname = y.name.split('/')[1]
+        df.Axis_set(ax,axesname = [xname,yname,'Phase Figure'],xylims = self.para['xylims'])
+        df.Colorbar_set(ax,gci)
+        #self.set_para(para={'axesname':[])
+
     def draw_spectrum(self,ax,key, para={}, weight = 0):
         key = key.split('.')[1]
         self.para.update(self.default_para)
@@ -435,6 +473,7 @@ class quick_draw(object):
                         axesname=self.para['axesname'],\
                         xylims = self.para['xylims'],\
                        )
+
         
     def draw(self,ax,key,para={}):
         '''
@@ -449,10 +488,25 @@ class quick_draw(object):
                 'save':False,
                 'axesname': [r'$x/d_i$',r'$y/d_i$',r'$title$'+self.name]
         Output:
-            Return Fig,ax 
-            Figure
+            Return ax 
         '''
-                
+        ##########data 
+        key = key.split('.')[1]
+        #############
+        self.para['caxis'] = 0; # autosetting vmin - vmax;
+        self.para['axesname'][2] = key + ' '+str(self.a.Header['time']/self.s.const['T0'])[0:5] + 'T0'
+        if (type(para) != np.int):
+            self.set_para(para);
+        ###setting default figure
+        if (type(self.para['xylims']) != np.int):
+            dx = self.para['xylims'][0][1]-self.para['xylims'][0][0];
+            dy = self.para['xylims'][1][1]-self.para['xylims'][1][0];
+            figsize = [6,dy/dx*6];
+        else:
+            figsize = [6,6]
+
+        if (type(ax) == np.int):
+            fig,ax = Create_Figure(figsize = figsize)
         #setting 
         #judge whether the key exist in a. and get data.
         #judge the parameter setting.
@@ -480,18 +534,12 @@ class quick_draw(object):
 #                }
 #            
 #         self.set_para(para)
-        key = key.split('.')[1]
-        if (type(ax) == np.int):
-            fig,ax = Create_Figure()
+        
             
         var = self.a.__dict__[key].data;  
         vmin = np.min(var);
         vmax = np.max(var);
         #self.para.update(self.default_para)
-        self.para['caxis'] = 0; # autosetting vmin - vmax;
-        self.para['axesname'][2] = key + ' '+str(self.a.Header['time']/self.s.const['T0'])[0:5] + 'T0'
-        if (type(para) != np.int):
-            self.set_para(para);
 #         di = self.s.di;
 #         print(self.para['caxis']);
         ax,gci,cb = draw_field_snapshot(ax=ax,\
@@ -507,7 +555,7 @@ class quick_draw(object):
                        )
         #autoseting colorcaxis:
         if (self.para['save']):
-            plt.savefig(self.para['axesname'][2]+'.png',dpi = 200);
+            plt.savefig(self.dirc+self.para['axesname'][2]+'.png',dpi = 200);
 
         return ax 
     def angle_distribution(self,key,species,dim = 2):

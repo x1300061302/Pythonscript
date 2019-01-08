@@ -22,6 +22,7 @@ r_e = qe**2.0/4.0/pi/epsilon0/me/c**2;
 Es = alpha_f*qe/4.0/pi/epsilon0/r_e**2.0;
 Bs = Es/c
 Mev = 1e6*qe;
+ev = qe;
 kb = 1.3806488e-23
 
 def Get_omega(lambd=1*um):
