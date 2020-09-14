@@ -3,6 +3,7 @@ import sdf
 import re
 import numpy as np
 import os 
+import gc
 ### const Part
 c = 3e8
 qe = 1e-16
@@ -17,6 +18,149 @@ FIELDNAME_RC = ['Ex_averaged','Ey','Bz_averaged','Density_electron','EkBar_elect
 #     varname = str_list[0]
 #     if (varname == 'Number_Density'):
 #         return 'Derived+''_'.join(str_list)
+def get_FWHM(data,dx=1.0,peak=None):
+    base = data[0]
+    data = data-base
+    if peak == None:
+        p = np.max(data);
+    else:
+        p = peak;
+    p_2 = p/2;
+    xx = np.linspace(0,len(data),len(data))
+    pos = np.where(data > p_2)[0]
+    p1 = pos[0];
+    pos2 = np.zeros(len(pos));
+    for i in range(len(pos)):
+        if i == 0:
+            pos2[i] = 1
+        else:
+            pos2[i] = pos[i] - pos[i-1]
+    try:
+        p2 = np.where(pos2 > 1)[0][0]
+    except:
+        p2 = 0
+    FWHM = p2 - p1
+    FWHM =FWHM*dx
+    x1 = p1*dx
+    x2 = p2*dx
+    return FWHM,x1,x2,p/2+base
+def get_mvp(sdffile,avg = True):
+    a = sdf.read(sdffile);
+    try:
+        xx = a.Grid_Grid_mid.data[0]
+        yy = a.Grid_Grid_mid.data[1]
+        dx = xx[1] - xx[0]
+        dy = yy[1] - yy[0]
+    except:
+        print('Grid wrong')
+        dx = 1.0
+        dy = 1.0
+    if avg:
+        bx = a.Magnetic_Field_Bx_averaged.data;
+        by = a.Magnetic_Field_By_averaged.data;
+    else:
+        bx = a.Magnetic_Field_Bx.data;
+        by = a.Magnetic_Field_By.data;
+    mvp = np.zeros(bx.shape);
+    Nx,Ny = mvp.shape
+    integral_y = 0.0
+    for iy in range(Ny):
+        integral_y = integral_y + bx[0,iy]
+        integral_x = 0.0
+        for ix in range(Nx):
+            integral_x = integral_x - by[ix,iy]
+            mvp[ix,iy] = integral_x*dx + integral_y*dy 
+    return np.array(mvp),xx,yy
+
+def Calculate_Flux(a,energy_range,direction = None,species = 'subset_pho_photon',csp_limit = None):
+    '''
+    Input:a,energy_range
+    direction = None
+    species = 'subset_pho_photon'
+    Output:
+    sum_Flux
+    sum_energy_flux
+    '''
+    sum_Flux = 0;
+    px = Get_particle_variable(sdffile=a,var='Px',species=species)
+    py = Get_particle_variable(sdffile=a,var='Py',species=species)
+    pz = Get_particle_variable(sdffile=a,var='Pz',species=species)
+    ekp2 = Get_particle_variable(sdffile = a, var = 'Ek',species = species)
+    weisp = Get_particle_variable(sdffile = a, var = 'Weight',species = species)
+    #1 energy_range
+    index = (ekp2> energy_range[0])*(ekp2 < energy_range[1])
+    if (direction !=None):
+        cos_theta = (px*direction[0] + py*direction[1] + pz*direction[2])/np.sqrt(px**2 + py**2 + pz**2)
+        Omega = 2*np.pi*(1 -  cos_theta);
+        index2 = Omega < 4*np.pi/100;
+        index = index*index2
+    if (csp_limit != None ):
+        csp = Get_particle_variable(sdffile = a,var='Compton_Scatter_Times',species = species);
+        index3 = csp > csp_limit
+        index = index*index3
+    sum_Flux = sum(weisp[index])
+    sum_Energy_flux = sum(ekp2[index]*weisp[index])
+    return sum_Flux,sum_Energy_flux
+def makedirs(dirc):
+    try:
+        os.makedirs(dirc)
+    except:
+        print('exist')
+    return dirc + '/'
+def Track2D(ID,ffs,species):
+    nn = len(ffs)
+    xpos = np.zeros(nn)
+    ens = np.zeros(nn)
+    ypos = np.zeros(nn)
+    tts = np.zeros(nn)
+    for i in range(0,nn):
+        a = sdf.read(ffs[i]);
+        grids = Get_particle_variable(sdffile=a,var='Grid',species=species)
+        en = Get_particle_variable(sdffile = a,var = 'Gamma',species=species)
+        ids = Get_particle_variable(sdffile = a,var = 'ID',species = species)
+        xx = grids[0]
+        yy = grids[1]
+        pos = np.where(ids == ID)[0]
+        xpos[i] = xx[pos]
+        ypos[i] = yy[pos]
+        ens[i] = en[pos]
+        tts[i] = a.Header['time']
+    try:
+        return xpos,ypos,ens,tts
+    finally:
+        del xpos
+        del ypos
+        del ens
+        del tts
+        del grids
+        del en
+        del ids
+        del xx
+        del yy
+        del pos
+        del a
+
+def get_times(files,ran = None):
+    '''
+    Input: files of sdf file
+           ran = range(0,len(files),1)
+    Output: times: np.array(len(files))
+    '''
+    times = []
+    if (ran == None):
+        ran = range(0,len(files))
+    for i in ran:
+        a = sdf.read(files[i]);
+        times.append(a.Header['time'])
+    return np.array(times)
+
+
+
+
+def smooth_data(data,sigma = 2):
+    from scipy import ndimage
+    sd = ndimage.gaussian_filter(data,sigma = sigma)
+    return sd
 
 def Get_EMTensor(a,averaged = True,dim = 2):
     '''
@@ -115,7 +259,6 @@ def Get_particle_variable(sdffile,var,species):
 
 	if (nofind):
 		print('Can Not Find '+var+' of '+species)
-		print(dic.keys())
 	return data.data
 def Get_particle_theta(sdffile,species,dim):
     if (dim == 2):
@@ -154,7 +297,7 @@ def Get_field_variable(sdffile,var):
 		print('*******Can Not Find '+var+' in '+'***********')
 		print(dic.keys())
 		print('******************************************************')
-	return data.data
+	return data
 
 def Get_extent(sdffile):
 	'''return grid.extents which is a list of [xmin,ymin,xmax,ymax] for 2D
@@ -177,7 +320,7 @@ def Get_extent(sdffile):
 		myextent = extent[index]
 
 	return myextent
-def Get_max_var(key,prefix = '',dirc = '', ffs = []):
+def Get_max_var(key,prefix = '',dirc = '', ffs = [],region=0):
     ''' Input:
             key : a.__dict__key or a.key
             prefix and dirc is the file list information like xxx/f0010.sdf prefix = 'f',dirc = 'xxx'
@@ -191,8 +334,11 @@ def Get_max_var(key,prefix = '',dirc = '', ffs = []):
     max_var = []
     time = []
     for i in range(0,len(ffs)):
-        a = sdf.read(dirc+ffs[i])
-        max_var.append(np.max(a.__dict__[key].data));
+        a = sdf.read(ffs[i])
+        if (type(region) == np.int):
+            region[1],region[3] = a.__dict__[key].data.shape();
+            region[0],region[2] = [0,0];
+        max_var.append(np.max(a.__dict__[key].data[region[0]:region[1],region[2]:region[3]]));
         time.append(a.Header['time'])
     return np.array(max_var),np.array(time)
 
@@ -249,17 +395,18 @@ def Get_field_energy(sdffile,key='all'):
     return s
 #     grids = a.
 
-def Get_file(prefix,dirc=''):
-	''' prefix = 'p' or 'f' 
-	dirc is the name directory of the sdf file
-	return sdf filename without dirc added'''
-	filename = [];
-	regu_var = r'^'+prefix+'\d+.sdf$';
-	cwd = os.getcwd()
-	for files in sorted(os.listdir(cwd+'/'+dirc)):
-		if re.match(regu_var,files):
-			filename.append(dirc+files)
-	return filename
+def Get_file(prefix,dirc='',suffix = '.sdf'):
+    ''' prefix = 'p' or 'f' 
+    dirc is the name directory of the sdf file
+    return sdf filename without dirc added'''
+    filename = [];
+    regu_var = r'^'+prefix+'\d+'+suffix+'$';
+    for files in sorted(os.listdir(dirc)):
+        if re.match(regu_var,files):
+            filename.append(dirc+files)
+    if (len(filename) == 0):
+        print('No files');
+    return filename
 
 def Get_laser_en(sdffile):
     data = sdffile.__dict__['Absorption_Total_Laser_Energy_Injected__J_'];
@@ -272,13 +419,11 @@ def Get_time(prefix=''):
         a = sdf.read(ffs[i]);
         time.append(a.Header['time']);
     return np.array(time) 
-def Get_curlB(sdffile):
+def Get_curlB(sdffile,dx = 1.0,dy = 1.0):
     a = sdf.read(sdffile)
     try:
-        Bx = a.Magnetic_Field_Bx;
-        By = a.Magnetic_Field_By;
-        dx = Bx.grid.data[0][1] - Bx.grid.data[0][0];
-        dy = Bx.grid.data[1][1] - Bx.grid.data[1][0]
+        Bx = a.Magnetic_Field_Bx.data;
+        By = a.Magnetic_Field_By.data;
     except:
         print('Wrong, can not read Magnetic Field')
     curlB = curl(Ax = Bx,Ay = By,dx = dx,dy = dy,order = 2);
@@ -292,11 +437,40 @@ def curl(Ax,Ay,dx = 1.0,dy = 1.0,Az=0,order=2):
         for iy in range(1,ny):
             curlAz[ix,iy] = cx*(Ay[ix  , iy] - Ay[ix-1, iy])-cy*(Ax[ix  , iy]   - Ax[ix  , iy-1])
     return curlAz
-def Get_energy(prefix='',dirc = '',ret = False):
+def Get_optical_stokes(prefix = '',dirc = '',files = None):
+    '''Get Total_Optical_I1 and Total_optical_I2 and U
+    input: prefix and dirc
+           ret means if return time and files
+    output: toi1,toi2,tou,times
+    '''
+    ffs = Get_file(prefix = prefix,dirc = dirc);
+    toi1 = []
+    toi2 = []
+    tou = []
+    time = []
+    if (files !=None):
+        ffs = files
+    for i in range(0,len(ffs)):
+        a = sdf.read(ffs[i]);
+        time.append(a.Header['time'])
+        toi1.append(a.Total_Optical_Intensity_I1_in_Simulation.data)
+        toi2.append(a.Total_Optical_Intensity_I2_in_Simulation.data)
+        tou.append(a.Total_Optical_Intensity_U_in_Simulation.data)
+    return np.array(toi1),np.array(toi2),np.array(tou),np.array(time)
+
+def Get_energy(prefix='',dirc = '',ret = False,files = None):
+    '''Get TFE and TPE
+    input: prefix and dirc
+           ret means if return time
+    output: TFE TPE
+    
+    '''
     ffs = Get_file(prefix = prefix,dirc = dirc);
     TFE = []
     TPE = []
     time = []
+    if (files !=None):
+        ffs = files
     for i in range(0,len(ffs)):
         a = sdf.read(ffs[i]);
         time.append(a.Header['time'])
@@ -308,27 +482,31 @@ def Get_energy(prefix='',dirc = '',ret = False):
         return np.array(TFE),np.array(TPE)
 
 ###############--------------------############some operation:
-def Get_hist_var(var,weights = 0, bins=500,normed=False):
+def Get_hist_var(data,weights = 0, bins=500,normed=False):
+    '''
+    Input: data,weights  
+    Output: hd,axx
+    '''
     if (type(weights) == int):
-        weights = np.ones(var.shape)+weights;
-    hd, ad = np.histogram(var, weights = weights,bins=bins, normed=normed)
+        weights = np.ones(data.shape)+weights;
+    hd, ad = np.histogram(data, weights = weights,bins=bins, normed=normed)
     hd = hd/(ad[1]-ad[0])
     axx = 0.5*(ad[1:]+ad[:-1]);
-    return hd,axx
-def Get_hist2d_var(x,y,bins=[100,200],normed = False):
+    return axx,hd
+def Get_hist2d_var(x,y,bins=[100,200],normed = False,weights = None):
     '''
     Input:
         x,y,
         bins = [100,200]
         normed = False
     Output:
-        h_xy,xx,yy
+        xx,yy,h_xy
     '''
-    h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins)
+    h_xy, xedge, yedge = np.histogram2d(x, y, bins=bins,weights = weights)
     xax = np.linspace(np.min(x), np.max(x), bins[0])
     yax = np.linspace(np.min(y), np.max(y), bins[1])
     xx, yy = np.meshgrid(xax, yax)
-    return h_xy,xx,yy
+    return xx,yy,h_xy
 
 #############-------------Tracer script------------##########
 def tp_pos(ID,fts=0):
@@ -382,6 +560,21 @@ def tp_var(pos,varname,species='tra_ele',fts=0,dim = 2):
         
     return tvar
 
+def read_const(dirc):
+    info = {}
+    try:
+        f = open(dirc+'/const.status','r')
+    except:
+        print('can not find const.status')
+        return;
+    lines = f.readlines()
+    for line in lines:
+        exp = line.split()
+        info[exp[0]] = float(exp[2])
+    f.close()
+    return info
+    
+
 ##########Class Simu_info()-------#################
 
 class simu_info():
@@ -389,38 +582,57 @@ class simu_info():
     This Class is aimed to get the information of the Simulation.
     And normalized parameter in Simulations.
     '''
-    def __init__(self,deckfile='const.status',Nx=0,Ny=0,Nz=0,name = ''):
+    def __init__(self,dirc='',name = ''):
         self.name = name;
         self.axis={};
-        self.map={}
-        self.Nx = Nx;
-        self.Ny = Ny;
-        self.const={'di':1,'T0':1,'B0':1,'E0':1,'J0':1,'xmin':0,'xmax':Nx,'ymin':0,'ymax':Ny};
-        print('Begin Read Deck')
-        self.deck_read(deck_name = deckfile)
-        self.axis['x'] = np.linspace(self.const['xmin']/self.const['di'],self.const['xmax']/self.const['di'],self.Nx);
-        self.axis['y'] = np.linspace(self.const['ymin']/self.const['di'],self.const['ymax']/self.const['di'],self.Ny);
-        self.map['xx'],self.map['yy'] = np.meshgrid(self.axis['x'],self.axis['y']);  
-    def deck_read(self,deck_name):
+        self.map={};
+        self.const={'di':1,'T0':1,'B0':1,'E0':1,'J0':1};
+        self.Nx,self.Ny = [1,1]
+        self.read_input(dirc); #read nx,ny
+        self.read_const(dirc = dirc)
         try:
-            f = open(deck_name,'r')
+            self.axis['x'] = np.linspace(self.const['xmin']/self.const['di'],self.const['xmax']/self.const['di'],self.Nx);
+            self.axis['y'] = np.linspace(self.const['ymin']/self.const['di'],self.const['ymax']/self.const['di'],self.Ny);
+            self.map['xx'],self.map['yy'] = np.meshgrid(self.axis['x'],self.axis['y']);  
         except:
-            print('can not find this file:', deck_name)
+            print('No parameters')
+        
+    def read_input(self,dirc):
+        '''
+        Input:  directory of input.deck 
+        Output:
+        nx,ny 
+        '''
+        try:
+            f = open(dirc + '/input.deck','r')
+        except:
+            print('can not find input.deck')
             return;
-        print('Open file',deck_name);
         lines = f.readlines()
         for line in lines:
             exp = line.split()
-    #         print(exp)
+            if (not exp):#if empty
+                continue;
+            if (exp[0] in ['nx','ny']): 
+                self.const[exp[0]] = int(exp[2])
+        f.close()
+        self.Nx =  self.const['nx']
+        self.Ny =  self.const['ny']
+
+    def read_const(self,dirc):
+        try:
+            f = open(dirc+'/const.status','r')
+        except:
+            print('can not find const.status')
+            return;
+        lines = f.readlines()
+        for line in lines:
+            exp = line.split()
             self.const[exp[0]] = float(exp[2])
-        ##
         self.const['E0'] = self.const['B0']*c
         self.const['J0'] = self.const['drift_V']*self.const['ne']*qe
 
-    #             print(exp[0])
         f.close()
-        print('Close File')
-
     def get_extent(self,sdffile):
         a = sdf.read(sdffile);
         extent = Get_extent(a);
@@ -468,12 +680,19 @@ def calc_cross(Ax,Ay,Bx,By):
 
     
 def calc_mean_var(data,x,y, region):
+    ''' Calculate the mean value in the specific region
+    Input: data 
+           x,y,region with same unit 
+    Output: meanvalue
+    '''
 #     var = a.Electric_Field_Ez_averaged;
 #     x = ez.grid_mid.data[0]
 #     y = ez.grid_mid.data[1]
     # print(len(x))
-#     dx = x[1]-x[0]
-#     dy = y[1]-y[0]
+    mv = 0.0
+
+    dx = x[1]-x[0]
+    dy = y[1]-y[0]
     xmin,xmax,ymin,ymax = region;
     index_x = np.array(x < xmax)*np.array(x > xmin); 
     index_y = np.array(y < ymax)*np.array(y > ymin); 
@@ -483,20 +702,23 @@ def calc_mean_var(data,x,y, region):
     cell_y0 = int((ymin - y[0])/dy)
     cell_y1 = int((ymax - y[0])/dy)
 
-    mean_ez = 0.0
     w = 0.0
     for ix in range(cell_x0,cell_x1):
         for iy in range(cell_y0,cell_y1):
-            mean_ez = mean_ez + ez.data[ix,iy]
+            mv = mv + data[ix,iy]
             w = w +1
-    print(mean_ez/w)
-    xmin,xmax,ymin,ymax = region;
-    index_x = np.array(x < xmax)*np.array(x > xmin); 
-    index_y = np.array(y < ymax)*np.array(y > ymin); 
-    cell_x0 = int((xmin - x[0])/dx)
-    cell_y0 = int((ymin - y[0])/dy)
+    return (mv/w)
 
-def calc_mean_var_line(data,direction,delta_grid,cell):
+def calc_mean_var_line(data,direction,cell,delta_grid = 1):
+    '''
+    Input:data = np.array(Nx,Ny)
+    direction = 'x' is to calculate the mean value in y direction
+    direction = 'y' is to calculate the mean value in x direction
+    delta_grid = default =  1
+    cell = centre cell
+    Output:data_mean_line around [cell - delta_grid, cell + delta_grid]
+    
+    '''
     Nx,Ny = data.shape
     if (direction == 'x'):
         data_mean_line = np.zeros(Nx)
@@ -528,24 +750,15 @@ def calc_dot_2d(Ax,Ay,region,dx,dy,delta_nx,delta_ny):
                     gy[i,j] = (Ay[i,j+delta_ny]-Ay[i,j-delta_ny])/2/delta_ny/dy;
         return gx+gy
             
-def Magnetic_Flux(sdfname,region):
-        ''' Input:
-            sdfname: 0000.sdf 
-            region = [xmin,xmax,ymin,ymax] of your integral region
-            Output:
-            Fx =int By*dx
-            Fy =int Bx*dy 
-        '''
-        a = sdf.read(sdfname)
-        Bx = a.Magnetic_Field_Bx_averaged;
-        By = a.Magnetic_Field_By_averaged;
-        x = Bx.grid_mid.data[0]
-        
 def calc_gradient(data,dx,dy=0,region = 0,dim = 1,delta_n = 1,delta_ny=1):
+    '''
+    Input data is a scalar variation 2-D or 1-D
+    Output data is a vector 2-D or 1-D
+    '''
     if (dim == 1):
         nx = len(data);
         gx = np.zeros(nx);
-        if (type(region) == 0):
+        if (type(region) == np.int):
             cell_x0 = 0;
             cell_x1 = nx
         else:
@@ -562,6 +775,12 @@ def calc_gradient(data,dx,dy=0,region = 0,dim = 1,delta_n = 1,delta_ny=1):
         return gx
     if (dim == 2):
         nx,ny = data.shape;
+
+        if (type(region) == np.int):
+            region =[0,nx,0,ny]
+        else:
+            cell_x0,cell_x1,cell_y0,cell_y1 = region
+
         gx = np.zeros(data.shape);
         gy = np.zeros(data.shape);
         for i in range(region[0],region[1]):
@@ -580,7 +799,7 @@ def calc_gradient(data,dx,dy=0,region = 0,dim = 1,delta_n = 1,delta_ny=1):
                     gy[i,j] = (data[i,j+delta_ny]-data[i,j-delta_ny])/2/delta_ny/dy;
         return gx,gy
             
-def Magnetic_Flux(sdfname,region):
+def Magnetic_Flux(sdfname,region,xx=0,yy=0):
         ''' Input:
             sdfname: 0000.sdf 
             region = [xmin,xmax,ymin,ymax] of your integral region
@@ -591,17 +810,24 @@ def Magnetic_Flux(sdfname,region):
         a = sdf.read(sdfname)
         Bx = a.Magnetic_Field_Bx_averaged;
         By = a.Magnetic_Field_By_averaged;
-        x = Bx.grid_mid.data[0]
-        y = Bx.grid_mid.data[1]
         nx,ny = Bx.data.shape
+        if (type(xx) !=np.int):
+            x = xx;
+            y = yy;
+        else:
+            extents = Bx.grid_mid.extents;
+            x = np.linspace(extents[0],extents[2],nx)
+            y = np.linspace(extents[1],extents[3],ny)
         if (nx != len(x)):
             print("The shape nx,ny is",nx,ny,', but the length x,y is ',len(x),len(y))
             return 0;
         #return cell_x and cell_y 
         dx = x[1] - x[0];
         dy = y[1] - y[0];
+        #print('dx=',dx,'dy=',dy)
         xmin,xmax,ymin,ymax = region;
         index_x = np.array(x < xmax)*np.array(x > xmin); 
+        #print(xmax,xmin)
         index_y = np.array(y < ymax)*np.array(y > ymin); 
         cell_x0 = int((xmin - x[0])/dx)
         cell_y0 = int((ymin - y[0])/dy)
@@ -613,20 +839,32 @@ def Magnetic_Flux(sdfname,region):
         Flux_x = np.trapz(By2[index_x],x[index_x])
         return Flux_x,Flux_y    
 
-def Find_p(sdffile, region,index = 375):
-    a = sdf.read(ffs[i])
+def Find_p(sdffile, region,index = 128):
+    a = sdf.read(sdffile)
     bx = a.Magnetic_Field_Bx_averaged.data;
     by = a.Magnetic_Field_By_averaged.data;
     abs_b = np.sqrt(bx**2 + by**2)
     data = abs_b[:,index];
     pos = np.where(data[region[0]:region[1]] == np.min(data[region[0]:region[1]]))[0]
     return pos + region[0]
-def get_slope(Xi,Yi,p0):
+def get_slope(Xi,Yi,p0,ran = None,logscale = None):
     '''Input: 
         Xi,Yi
        Output:
        p0 
     '''
+    if (logscale == 'x'):
+        Xi = np.log10(Xi)
+    if (logscale == 'y'):
+        Yi = np.log10(Yi)
+    if (logscale == 'xy'):
+        Xi = np.log10(Xi)
+        Yi = np.log10(Yi)
+    if (ran != None):
+        index = np.array(Xi > ran[0])*np.array(Xi < ran[1])
+        Xi = Xi[index]
+        Yi = Yi[index]
+        print(len(Xi),len(Yi))
     from scipy.optimize import leastsq
     def func(p,x):
         k,b=p
@@ -641,7 +879,7 @@ def get_slope(Xi,Yi,p0):
     print("k=",k,'\n',"b=",b)
     return k,b
     
-def get_mag_flux(region, prefix = '',dirc = ''):
+def get_mag_flux(region, prefix = '',dirc = '',files = None):
     '''Input:
         region: in real unit like [xmin,xmax,ymin,ymax]
         prefix
@@ -654,7 +892,9 @@ def get_mag_flux(region, prefix = '',dirc = ''):
     time = []
     fxs = []
     fys = []
-    for i in range(1,len(ffs)):
+    if files != None:
+        ffs = files
+    for i in range(1,len(ffs),1):
         time.append(sdf.read(ffs[i]).Header['time']);
         if (type(region) == np.ndarray):
             fx,fy = Magnetic_Flux(ffs[i],region = region);

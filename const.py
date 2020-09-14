@@ -21,8 +21,12 @@ alpha_f = qe**2.0/hbar/c/4.0/pi/epsilon0; '''\sim 1/137 the fine structure const
 r_e = qe**2.0/4.0/pi/epsilon0/me/c**2;
 Es = alpha_f*qe/4.0/pi/epsilon0/r_e**2.0;
 Bs = Es/c
-Mev = 1e6*qe;
+mev = 1e6*qe;
+kev = 1e3*qe;
 ev = qe;
+Gs = 1e-4;
+fs = 1e-15;
+ps = 1e-12;
 kb = 1.3806488e-23
 
 def Get_omega(lambd=1*um):
@@ -46,6 +50,7 @@ import sdf
 import sdfread as sr
 import drawfig as df
 import matplotlib.pyplot as plt
+plt.rc('font',family='Times New Roman')
 from mpl_toolkits.mplot3d import Axes3D
 import imp
 import os 
